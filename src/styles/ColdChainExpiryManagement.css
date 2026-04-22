@@ -1,0 +1,178 @@
+/* ═══════════════════════════════════════════════════════════════
+   ColdChainExpiryManagement — Baskin-Robbins brand styling
+═══════════════════════════════════════════════════════════════ */
+
+.cold-chain-container {
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+  background-color: #FFF8F3;
+}
+
+/* ── Future preview banner ─────────────────────────────────── */
+.future-preview-banner {
+  background: #FFD54F;
+  color: #1a1a1a;
+  font-size: 14px;
+  padding: 10px 16px;
+  width: 100%;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  border: 1px solid #E6B800;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.screen-header { margin-bottom:20px; padding-bottom:18px; border-bottom:3px solid #EE1C25; }
+.screen-header h1 { margin:0; font-size:28px; color:#1a1a1a; font-weight:800; }
+.screen-header p  { margin:6px 0 0 0; color:#666; font-size:13px; }
+
+/* ── Decision Dashboard (4 big boxes) ────────────────────────── */
+.decision-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.dash-card {
+  border-radius: 14px;
+  padding: 20px 16px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.dash-count  { font-size: 52px; font-weight: 900; line-height: 1; }
+.dash-label  { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin: 4px 0; }
+.dash-qty    { font-size: 12px; color: inherit; opacity: 0.8; margin-bottom: 10px; }
+.dash-action { font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 20px; background: rgba(255,255,255,0.35); display: inline-block; }
+
+.dash-expired  { background: linear-gradient(135deg, #8B0000 0%, #c62828 100%); color: white; }
+.dash-critical { background: linear-gradient(135deg, #EE1C25 0%, #FF5252 100%); color: white; }
+.dash-at-risk  { background: linear-gradient(135deg, #E65100 0%, #FFB347 100%); color: white; }
+.dash-safe     { background: linear-gradient(135deg, #1B5E20 0%, #7AC943 100%); color: white; }
+
+/* ── Alert Strip ─────────────────────────────────────────────── */
+.alert-strip {
+  background: white; border-radius:12px; padding:16px 20px;
+  margin-bottom:20px; box-shadow:0 2px 8px rgba(238,28,37,0.10);
+  border-left:5px solid #EE1C25;
+}
+.alert-strip-title { font-size:12px; font-weight:700; color:#EE1C25; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px; }
+.alert-strip-cards { display:flex; gap:12px; flex-wrap:wrap; }
+.alert-card { flex:1; min-width:220px; max-width:420px; padding:12px 14px; border-radius:8px; border-left:4px solid; }
+.alert-card.alert-critical { background:#fff5f5; border-left-color:#EE1C25; }
+.alert-card.alert-warning  { background:#fffbf0; border-left-color:#FFB347; }
+.alert-card.alert-info     { background:#f0fff5; border-left-color:#7AC943; }
+.alert-card-title { font-size:13px; font-weight:700; color:#1a1a1a; margin-bottom:4px; }
+.alert-card-desc  { font-size:11px; color:#555; line-height:1.4; }
+
+/* ── Metrics Grid ────────────────────────────────────────────── */
+.metrics-grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:14px; margin-bottom:24px;
+}
+.metric-card {
+  background:white; padding:14px 16px; border-radius:10px;
+  border-left:4px solid #EE1C25; box-shadow:0 2px 6px rgba(238,28,37,0.08);
+}
+.metric-card.warning { border-left-color:#FFB347; background:#fffbf0; }
+.metric-card.critical { border-left-color:#EE1C25; background:#fff5f5; }
+.metric-label   { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; font-weight:600; }
+.metric-value   { font-size:22px; font-weight:800; color:#1a1a1a; }
+.metric-subtext { font-size:11px; color:#aaa; margin-top:3px; }
+
+/* ── Table Sections ──────────────────────────────────────────── */
+.table-section {
+  background:white; padding:22px 24px; margin-bottom:20px;
+  border-radius:12px; box-shadow:0 2px 8px rgba(238,28,37,0.07);
+}
+.section-header { margin-bottom:14px; padding-bottom:12px; border-bottom:2px solid #fdf0f0; }
+.section-header h2 { margin:0; font-size:17px; color:#1a1a1a; font-weight:700; }
+.section-header p  { margin:4px 0 0 0; font-size:12px; color:#888; }
+
+/* ── Table Controls ──────────────────────────────────────────── */
+.table-controls {
+  display:flex; align-items:center; gap:12px; margin-bottom:14px;
+  padding:10px 14px; background:#FFF8F3; border-radius:8px;
+}
+.table-controls label { font-size:13px; font-weight:600; color:#333; }
+.table-controls select {
+  padding:7px 12px; border:1px solid #e0d0d0; border-radius:6px;
+  font-size:13px; background:white; cursor:pointer; color:#333;
+}
+.record-count { font-size:12px; color:#888; margin-left:auto; }
+
+/* ── Data Table ──────────────────────────────────────────────── */
+.table-wrapper { overflow-x:auto; }
+.data-table { width:100%; border-collapse:collapse; font-size:12px; }
+.data-table thead th {
+  padding:10px 12px; text-align:left; font-weight:700; color:#8B4513;
+  text-transform:uppercase; font-size:11px; letter-spacing:0.5px;
+  background:#FFF8F3; border-bottom:2px solid #f5d5d5; white-space:nowrap;
+}
+.data-table thead th.number { text-align:right; }
+.data-table tbody tr { border-bottom:1px solid #fdf0f0; transition:background-color 0.12s; }
+.data-table tbody tr:hover { background:#fffaf8; }
+
+/* Status row tinting */
+.data-table tbody tr.status-ok       { border-left:3px solid #7AC943; }
+.data-table tbody tr.status-at_risk  { border-left:3px solid #FFB347; background:#fffaf0; }
+.data-table tbody tr.status-critical { border-left:3px solid #EE1C25; background:#fff5f5; }
+.data-table tbody tr.status-expired  { border-left:3px solid #8B0000; background:#ffe8e8; }
+
+.data-table tbody td { padding:9px 12px; color:#333; vertical-align:middle; }
+.data-table tbody td.number  { text-align:right; font-family:'Courier New',monospace; }
+.data-table tbody td.highlight { font-weight:700; color:#EE1C25; }
+.data-table tbody td.mono { font-family:'Courier New',monospace; font-size:11px; }
+.data-table tbody td.urgent { color:#EE1C25; font-weight:700; }
+.data-table tbody td.warning-text { color:#E65100; font-weight:600; }
+.data-table tbody td.expired-text { color:#8B0000; font-weight:700; }
+.data-table tbody td.temp-alert { color:#EE1C25; font-weight:700; }
+.data-table tbody td.text-muted { color:#777; font-size:11px; }
+
+/* Status badges */
+.status-badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:10px; font-weight:700; white-space:nowrap; }
+.status-badge.status-ok       { background:#d4edda; color:#155724; }
+.status-badge.status-at_risk  { background:#ffe5cc; color:#7a3100; }
+.status-badge.status-critical { background:#f8d7da; color:#721c24; }
+.status-badge.status-expired  { background:#8B0000; color:white; }
+
+/* Risk score */
+.risk-score { font-weight:700; color:#1a1a1a; }
+
+/* Action column */
+.action-cell { font-size:11px; color:#333; line-height:1.4; max-width:220px; }
+
+/* Period badges */
+.period-badge { display:inline-block; padding:3px 8px; border-radius:4px; font-size:10px; font-weight:700; }
+.badge-actual   { background:#fde8e8; color:#EE1C25; }
+.badge-forecast { background:#fff3e0; color:#E65100; }
+
+/* ── Guidelines Section ──────────────────────────────────────── */
+.guidelines-section {
+  background:white; padding:22px 24px; border-radius:12px;
+  box-shadow:0 2px 8px rgba(238,28,37,0.07);
+}
+.guidelines-section h2 { margin:0 0 16px 0; font-size:17px; font-weight:700; color:#1a1a1a; }
+.guidelines-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+.guideline-card { padding:14px 16px; border-radius:10px; border-left:4px solid #7AC943; background:#f5fff5; }
+.guideline-card.warning  { border-left-color:#FFB347; background:#fffaf0; }
+.guideline-card.critical { border-left-color:#EE1C25; background:#fff5f5; }
+.guideline-card.ok       { border-left-color:#7AC943; background:#f5fff5; }
+.guideline-card h3 { margin:0 0 7px 0; font-size:13px; font-weight:700; color:#1a1a1a; }
+.guideline-card p  { margin:0; font-size:12px; color:#555; line-height:1.5; }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .cold-chain-container { padding:12px; }
+  .decision-dashboard { grid-template-columns:repeat(2,1fr); }
+  .dash-count { font-size:36px; }
+  .metrics-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
+  .metric-value { font-size:18px; }
+  .data-table { font-size:11px; }
+  .data-table thead th, .data-table tbody td { padding:7px 8px; }
+  .guidelines-grid { grid-template-columns:1fr; }
+  .screen-header h1 { font-size:22px; }
+  .alert-strip-cards { flex-direction:column; }
+  .action-cell { max-width:none; }
+}

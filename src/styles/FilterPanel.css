@@ -1,0 +1,243 @@
+.filter-panel {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(135deg, #f9f9f9 0%, #f0f0f0 100%);
+  border-bottom: 2px solid #e0e0e0;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.3s ease;
+}
+
+.filter-header:hover {
+  background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 100%);
+}
+
+.filter-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f1f1f;
+}
+
+.filter-toggle {
+  font-size: 12px;
+  color: #666;
+  transition: transform 0.3s ease;
+}
+
+.filter-content {
+  padding: 16px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.filter-group {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.filter-group:last-of-type {
+  border-bottom: none;
+  margin-bottom: 16px;
+}
+
+.filter-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.filter-group h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f1f1f;
+}
+
+.select-all-btn {
+  padding: 4px 8px;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select-all-btn:hover {
+  background: #e0e0e0;
+  color: #1f1f1f;
+}
+
+.filter-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.filter-checkbox:hover {
+  background: #f9f9f9;
+}
+
+.filter-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #1F77B4;
+}
+
+.filter-checkbox span {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+
+.filter-checkbox input[type="checkbox"]:checked + span {
+  color: #1F77B4;
+  font-weight: 600;
+}
+
+.reset-btn {
+  width: 100%;
+  padding: 10px;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 12px;
+}
+
+.reset-btn:hover {
+  background: #e0e0e0;
+  color: #1f1f1f;
+}
+
+/* Active Filters Display */
+.active-filters {
+  padding: 0 16px 12px 16px;
+  background: #f9f9f9;
+  border-top: 1px solid #f0f0f0;
+}
+
+.filter-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-badge-group:last-child {
+  margin-bottom: 0;
+}
+
+.badge-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #1F77B4;
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filter-badge:nth-of-type(2n) {
+  background: #2CA02C;
+}
+
+.filter-badge:nth-of-type(3n) {
+  background: #FF7F0E;
+}
+
+.filter-badge:nth-of-type(4n) {
+  background: #D62728;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .filter-header {
+    padding: 12px;
+  }
+
+  .filter-content {
+    padding: 12px;
+  }
+
+  .filter-options {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+  }
+
+  .filter-group-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .select-all-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .filter-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .filter-badge-group {
+    gap: 4px;
+  }
+
+  .filter-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+}

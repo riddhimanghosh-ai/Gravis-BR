@@ -1,0 +1,171 @@
+/* ═══════════════════════════════════════════════════════════════
+   ManufacturingExecutionPlanning — Baskin-Robbins brand styling
+═══════════════════════════════════════════════════════════════ */
+
+.mep-container {
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+  background-color: #FFF8F3;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.screen-header {
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 3px solid #EE1C25;
+}
+.screen-header h1 { margin:0; font-size:28px; color:#1a1a1a; font-weight:800; }
+.screen-header p  { margin:6px 0 0 0; color:#666; font-size:13px; }
+
+/* ── Alert Strip ─────────────────────────────────────────────── */
+.alert-strip {
+  background: white; border-radius:12px; padding:16px 20px;
+  margin-bottom:20px; box-shadow:0 2px 8px rgba(238,28,37,0.10);
+  border-left:5px solid #EE1C25;
+}
+.alert-strip-title { font-size:12px; font-weight:700; color:#EE1C25; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px; }
+.alert-strip-cards { display:flex; gap:12px; flex-wrap:wrap; }
+.alert-card { flex:1; min-width:200px; padding:12px 14px; border-radius:8px; border-left:4px solid; }
+.alert-card.alert-critical { background:#fff5f5; border-left-color:#EE1C25; }
+.alert-card.alert-warning  { background:#fffbf0; border-left-color:#FFB347; }
+.alert-card.alert-info     { background:#f0fff5; border-left-color:#7AC943; }
+.alert-card-title  { font-size:13px; font-weight:700; color:#1a1a1a; margin-bottom:4px; }
+.alert-card-action { font-size:11px; color:#666; font-style:italic; }
+
+/* ── Metrics Grid ────────────────────────────────────────────── */
+.metrics-grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+  gap:14px; margin-bottom:24px;
+}
+.metric-card {
+  background:white; padding:15px 18px; border-radius:10px;
+  border-left:4px solid #EE1C25; box-shadow:0 2px 6px rgba(238,28,37,0.08);
+}
+.metric-card.positive { border-left-color:#7AC943; background:linear-gradient(135deg,#f5fff5 0%,white 100%); }
+.metric-card.negative { border-left-color:#FF6B6B; background:linear-gradient(135deg,#fff5f5 0%,white 100%); }
+.metric-label   { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; font-weight:600; }
+.metric-value   { font-size:22px; font-weight:800; color:#1a1a1a; line-height:1.1; }
+.metric-subtext { font-size:11px; color:#aaa; margin-top:4px; }
+
+/* ── Capacity Overview ───────────────────────────────────────── */
+.capacity-overview-section {
+  background:white; border-radius:12px; padding:22px 24px;
+  margin-bottom:20px; box-shadow:0 2px 8px rgba(238,28,37,0.07);
+}
+.section-header { margin-bottom:16px; padding-bottom:12px; border-bottom:2px solid #fdf0f0; }
+.section-header h2 { margin:0; font-size:17px; color:#1a1a1a; font-weight:700; }
+.section-header p  { margin:5px 0 0 0; font-size:12px; color:#888; }
+
+.capacity-bar-grid {
+  display:grid; grid-template-columns:repeat(12,1fr); gap:8px; margin-bottom:12px;
+}
+.cap-block {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:10px 4px; border-radius:8px; text-align:center; min-height:72px;
+}
+.cap-block.status-ok       { background:#e8f5e9; border:2px solid #7AC943; }
+.cap-block.status-caution  { background:#fffde7; border:2px solid #FDD835; }
+.cap-block.status-warning  { background:#fff3e0; border:2px solid #FFB347; }
+.cap-block.status-critical { background:#fde8e8; border:2px solid #EE1C25; }
+.cap-month { font-size:11px; font-weight:700; color:#333; white-space:nowrap; }
+.cap-util  { font-size:14px; font-weight:800; color:#1a1a1a; margin:2px 0; }
+.cap-badge { font-size:10px; color:#888; }
+
+.cap-legend { display:flex; gap:16px; flex-wrap:wrap; font-size:12px; margin-top:4px; }
+.leg-item   { font-weight:500; color:#555; }
+
+/* ── Table Sections ──────────────────────────────────────────── */
+.table-section {
+  background:white; padding:22px 24px; margin-bottom:20px;
+  border-radius:12px; box-shadow:0 2px 8px rgba(238,28,37,0.07);
+}
+.table-wrapper { overflow-x:auto; }
+
+.data-table { width:100%; border-collapse:collapse; font-size:13px; }
+.data-table thead th {
+  padding:10px 12px; text-align:left; font-weight:700; color:#8B4513;
+  text-transform:uppercase; font-size:11px; letter-spacing:0.5px;
+  background:#FFF8F3; border-bottom:2px solid #f5d5d5; white-space:nowrap;
+}
+.data-table thead th.number { text-align:right; }
+.data-table tbody tr { border-bottom:1px solid #fdf0f0; transition:background-color 0.15s; }
+.data-table tbody tr:hover { background:#fffaf8; }
+
+/* Status row tinting */
+.data-table tbody tr.status-ok       { border-left:3px solid #7AC943; }
+.data-table tbody tr.status-caution  { border-left:3px solid #FDD835; background:#fffff5; }
+.data-table tbody tr.status-warning  { border-left:3px solid #FFB347; background:#fffaf0; }
+.data-table tbody tr.status-critical { border-left:3px solid #EE1C25; background:#fff5f5; }
+
+.data-table tbody td { padding:10px 12px; color:#333; vertical-align:middle; }
+.data-table tbody td.number  { text-align:right; font-family:'Courier New',monospace; }
+.data-table tbody td.bold    { font-weight:700; }
+.data-table tbody td.highlight { font-weight:700; color:#EE1C25; }
+.data-table tbody td.text-muted { color:#777; font-size:12px; }
+.data-table tbody td.sku-name { font-weight:700; color:#1a1a1a; }
+
+/* Total row */
+.data-table tbody tr.total-row {
+  background:#FFF8F3; border-top:2px solid #f5d5d5; border-left:none;
+}
+.data-table tbody tr.total-row td { font-weight:700; }
+
+/* Period badges */
+.period-badge { display:inline-block; padding:3px 9px; border-radius:4px; font-size:10px; font-weight:700; white-space:nowrap; }
+.badge-actual   { background:#fde8e8; color:#EE1C25; }
+.badge-forecast { background:#fff3e0; color:#E65100; }
+
+/* Utilisation % coloring */
+.util-status-ok       { color:#2e7d32; font-weight:700; }
+.util-status-caution  { color:#f57f17; font-weight:700; }
+.util-status-warning  { color:#e65100; font-weight:700; }
+.util-status-critical { color:#EE1C25; font-weight:800; }
+
+/* Decision cell */
+.decision-cell { font-size:12px; white-space:nowrap; }
+
+/* Status badges */
+.status-badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; }
+.status-badge.ok { background:#e8f5e9; color:#2e7d32; }
+
+/* ── Chart section ───────────────────────────────────────────── */
+.chart-section {
+  background:white; border-radius:12px; padding:20px 24px;
+  margin-bottom:20px; box-shadow:0 2px 8px rgba(238,28,37,0.07);
+}
+.toggle-chart-btn {
+  background:linear-gradient(135deg,#EE1C25 0%,#C41B1F 100%);
+  color:white; border:none; padding:10px 20px; border-radius:8px;
+  cursor:pointer; font-size:13px; font-weight:700; margin-bottom:4px; transition:opacity 0.2s;
+}
+.toggle-chart-btn:hover { opacity:0.88; }
+.chart-container { margin-top:16px; padding:16px; background:#FFF8F3; border-radius:8px; }
+
+/* ── Guidelines ──────────────────────────────────────────────── */
+.guidelines-section {
+  background:white; padding:22px 24px; border-radius:12px;
+  box-shadow:0 2px 8px rgba(238,28,37,0.07);
+}
+.guidelines-section h2 { margin:0 0 16px 0; font-size:17px; font-weight:700; color:#1a1a1a; }
+.guidelines-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+.guideline-card { padding:14px 16px; border-radius:10px; border-left:4px solid #7AC943; background:#f5fff5; }
+.guideline-card.caution  { border-left-color:#FDD835; background:#fffff5; }
+.guideline-card.warning  { border-left-color:#FFB347; background:#fffaf0; }
+.guideline-card.critical { border-left-color:#EE1C25; background:#fff5f5; }
+.guideline-card.ok       { border-left-color:#7AC943; background:#f5fff5; }
+.guideline-card h3 { margin:0 0 7px 0; font-size:13px; font-weight:700; color:#1a1a1a; }
+.guideline-card p  { margin:0; font-size:12px; color:#555; line-height:1.5; }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .mep-container { padding:12px; }
+  .metrics-grid  { grid-template-columns:repeat(2,1fr); gap:10px; }
+  .metric-value  { font-size:18px; }
+  .capacity-bar-grid { grid-template-columns:repeat(6,1fr); }
+  .data-table    { font-size:11px; }
+  .data-table thead th, .data-table tbody td { padding:7px 8px; }
+  .guidelines-grid { grid-template-columns:1fr; }
+  .screen-header h1 { font-size:22px; }
+  .decision-cell { white-space:normal; font-size:11px; }
+}

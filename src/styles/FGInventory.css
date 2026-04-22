@@ -1,0 +1,180 @@
+/* ═══════════════════════════════════════════════════════════════
+   FGInventory — Baskin-Robbins brand styling
+═══════════════════════════════════════════════════════════════ */
+
+.fg-inventory-container {
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+  background-color: #FFF8F3;
+}
+
+.screen-header {
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 3px solid #EE1C25;
+}
+.screen-header h1 {
+  margin: 0;
+  font-size: 28px;
+  color: #1a1a1a;
+  font-weight: 800;
+}
+.screen-header p {
+  margin: 6px 0 0 0;
+  color: #666;
+  font-size: 13px;
+}
+
+/* Alert strip (re-uses visual pattern) */
+.alert-strip {
+  background: white;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(238,28,37,0.1);
+  border-left: 5px solid #EE1C25;
+}
+.alert-strip-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #EE1C25;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 12px;
+}
+.alert-strip-cards { display: flex; gap: 12px; flex-wrap: wrap; }
+.alert-card {
+  flex: 1;
+  min-width: 200px;
+  max-width: 380px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+.alert-card.alert-critical { background: #fff5f5; border-left-color: #EE1C25; }
+.alert-card.alert-warning  { background: #fffbf0; border-left-color: #FFB347; }
+.alert-card.alert-info     { background: #f0fff5; border-left-color: #7AC943; }
+.alert-card-title { font-size: 13px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
+.alert-card-action { font-size: 11px; color: #666; font-style: italic; }
+
+/* Tiles */
+.tiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.tile {
+  background: white;
+  padding: 16px 20px;
+  border-radius: 10px;
+  border-left: 4px solid #EE1C25;
+  box-shadow: 0 2px 6px rgba(238,28,37,0.08);
+}
+.tile.tile-warn {
+  border-left-color: #FFB347;
+  background: linear-gradient(135deg, #fffbf0 0%, white 100%);
+}
+.tile.tile-ok {
+  border-left-color: #7AC943;
+  background: linear-gradient(135deg, #f5fff5 0%, white 100%);
+}
+.tile-label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.tile-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: #1a1a1a;
+  line-height: 1.1;
+}
+.tile-sub {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 4px;
+}
+
+/* Table section */
+.table-section, .chart-section {
+  background: white;
+  padding: 22px 24px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(238,28,37,0.07);
+}
+.section-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #fdf0f0;
+}
+.section-header h2 {
+  margin: 0;
+  font-size: 17px;
+  color: #1a1a1a;
+  font-weight: 700;
+}
+.section-header p {
+  margin: 5px 0 0 0;
+  font-size: 12px;
+  color: #888;
+}
+
+/* Table */
+.table-wrapper { overflow-x: auto; }
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.data-table thead th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 700;
+  color: #8B4513;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  background: #FFF8F3;
+  border-bottom: 2px solid #f5d5d5;
+  white-space: nowrap;
+}
+.data-table thead th.number { text-align: right; }
+.data-table tbody tr { border-bottom: 1px solid #fdf0f0; }
+.data-table tbody tr:hover { background: #fffaf8; }
+.data-table tbody td { padding: 10px 12px; color: #333; vertical-align: middle; }
+.data-table tbody td.number {
+  text-align: right;
+  font-family: 'Courier New', monospace;
+}
+.data-table tbody td.bold { font-weight: 700; }
+.data-table tbody td.highlight { font-weight: 700; color: #EE1C25; }
+.data-table tbody td.action-text { color: #555; font-style: italic; font-size: 12px; }
+
+/* Status pills */
+.status-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.status-ok       { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+.status-tight    { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
+.status-critical { background: #fde8e8; color: #c62828; border: 1px solid #ffcdd2; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .fg-inventory-container { padding: 12px; }
+  .tiles-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .tile-value { font-size: 20px; }
+  .data-table { font-size: 11px; }
+  .data-table thead th, .data-table tbody td { padding: 7px 8px; }
+  .screen-header h1 { font-size: 22px; }
+}
