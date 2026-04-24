@@ -3,6 +3,7 @@ import {
   MONTH_LABELS,
   MONTHLY_DEMAND,
   SKU_WEIGHTS,
+  CHANNEL_WEIGHTS,
   FG_INVENTORY,
   PRODUCTION_STANDARDS,
   RAW_MATERIAL_BOM,
@@ -10,7 +11,8 @@ import {
 } from '../data/realisticSampleData';
 import '../styles/RawMaterials.css';
 
-const SKUS = ['Vanilla', 'Caramel', 'Mint', 'Chocolate'];
+const SKUS     = ['Vanilla', 'Caramel', 'Mint', 'Chocolate'];
+const CHANNELS = ['Parlor', 'Retail', 'HoReCa', 'E-Commerce'];
 const CAPACITY = PRODUCTION_STANDARDS.monthlyCapacity; // 1500 L
 
 const RawMaterials = () => {
@@ -26,31 +28,39 @@ const RawMaterials = () => {
   };
 
   const computed = useMemo(() => {
-    const demand     = MONTHLY_DEMAND[monthIdx];
-    // Opening stock: assume 40% of demand was pre-built/carried over from prior months
-    const opening    = Math.round(demand * 0.40);
-    const toProduce  = Math.max(0, demand - opening);
-    const cappedProduce = Math.min(toProduce, CAPACITY);
-    const unmetDemand = Math.max(0, toProduce - CAPACITY);
+    const fullDemand = MONTHLY_DEMAND[monthIdx];
 
-    // Per-SKU breakdown (all SKUs, but filter for display)
-    const allSkuRows = SKUS.map(sku => {
-      const skuDemand   = Math.round(demand * SKU_WEIGHTS[sku]);
-      const skuOpening  = Math.round(opening * SKU_WEIGHTS[sku]);
-      const skuProduce  = Math.round(cappedProduce * SKU_WEIGHTS[sku]);
+    // ── Totals filtered to selected SKUs only ──────────────────
+    const filteredDemand = selectedSkus.reduce((sum, sku) =>
+      sum + Math.round(fullDemand * SKU_WEIGHTS[sku]), 0);
+    const opening       = Math.round(filteredDemand * 0.40);
+    const toProduce     = Math.max(0, filteredDemand - opening);
+    const cappedProduce = Math.min(toProduce, CAPACITY);
+    const unmetDemand   = Math.max(0, toProduce - CAPACITY);
+
+    // ── SKU breakdown (selected SKUs only) ─────────────────────
+    const skuRows = selectedSkus.map(sku => {
+      const skuDemand  = Math.round(fullDemand * SKU_WEIGHTS[sku]);
+      const skuOpening = Math.round(skuDemand * 0.40);
+      const skuProduce = Math.min(Math.max(0, skuDemand - skuOpening), CAPACITY);
       return { sku, skuDemand, skuOpening, skuProduce };
     });
 
-    const skuRows = allSkuRows.filter(r => selectedSkus.includes(r.sku));
+    // ── Channel breakdown (selected SKUs only) ─────────────────
+    const channelRows = CHANNELS.map(ch => {
+      const chDemand = selectedSkus.reduce((sum, sku) =>
+        sum + Math.round(fullDemand * CHANNEL_WEIGHTS[ch][monthIdx] * SKU_WEIGHTS[sku]), 0);
+      const chOpening  = Math.round(chDemand * 0.40);
+      const chProduce  = Math.max(0, chDemand - chOpening);
+      return { channel: ch, chDemand, chOpening, chProduce };
+    });
 
-    // RM requirements: sum BOM across selected SKUs using toProduce (uncapped) for procurement sizing
+    // ── RM requirements (BOM × selected SKUs produce) ──────────
     const rmRows = RAW_MATERIAL_INVENTORY.map(rm => {
       let required = 0;
       skuRows.forEach(({ sku, skuProduce }) => {
         const bomEntry = RAW_MATERIAL_BOM[sku]?.[rm.name];
-        if (bomEntry) {
-          required += (skuProduce / 100) * bomEntry.qty;
-        }
+        if (bomEntry) required += (skuProduce / 100) * bomEntry.qty;
       });
       required = Math.round(required * 10) / 10;
 
@@ -65,28 +75,25 @@ const RawMaterials = () => {
       } else {
         urgency = { label: '🟠 Order Soon', cls: 'rm-status-tight' };
       }
-
       return { ...rm, required, gap, orderNeeded, urgency };
     });
 
-    // FG current stock for display (shows what's in warehouse now regardless of month)
+    // ── FG current stock ────────────────────────────────────────
     const fgRows = SKUS.map(sku => {
       const inv = FG_INVENTORY[sku];
-      const dailyDemand = Math.round(demand / 30);
+      const dailyDemand = Math.round(filteredDemand / 30);
       const daysOfCover = inv.qty > 0 ? Math.round(inv.qty / (dailyDemand || 1)) : 0;
       return { sku, qty: inv.qty, batches: inv.batches, daysOfCover };
     });
 
     const orderChecklist = rmRows.filter(r => r.orderNeeded);
-
-    // Summary stats for comparison card
-    const rmTotal = rmRows.length;
-    const rmWithGap = rmRows.filter(r => r.orderNeeded).length;
+    const rmTotal    = rmRows.length;
+    const rmWithGap  = rmRows.filter(r => r.orderNeeded).length;
     const urgentCount = rmRows.filter(r => r.orderNeeded && r.urgency.cls === 'rm-status-critical').length;
 
     return {
-      demand, opening, toProduce: cappedProduce, unmetDemand,
-      skuRows, rmRows, fgRows, orderChecklist,
+      filteredDemand, opening, toProduce: cappedProduce, unmetDemand,
+      skuRows, channelRows, rmRows, fgRows, orderChecklist,
       rmTotal, rmWithGap, rmSufficient: rmTotal - rmWithGap, urgentCount,
     };
   }, [monthIdx, selectedSkus]);
@@ -143,12 +150,16 @@ const RawMaterials = () => {
 
       {/* ── FG PRODUCTION CONTEXT ──────────────────────────────── */}
       <div className="context-card">
-        <h2>📦 Production Context — {MONTH_LABELS[monthIdx]} {selectedSkus.length < SKUS.length && `(${selectedSkus.join(', ')})`}</h2>
+        <h2>📦 Production Context — {MONTH_LABELS[monthIdx]}{selectedSkus.length < SKUS.length ? ` (${selectedSkus.join(', ')})` : ''}</h2>
 
+        {/* Summary stat cards — totals for selected SKUs only */}
         <div className="context-grid-3">
           <div className="context-stat">
             <div className="context-stat-label">Total Demand</div>
-            <div className="context-stat-value">{fmtL(computed.demand)}</div>
+            <div className="context-stat-value">{fmtL(computed.filteredDemand)}</div>
+            {selectedSkus.length < SKUS.length && (
+              <div style={{ fontSize: '10px', color: '#aaa', marginTop: '2px' }}>{selectedSkus.length} of {SKUS.length} SKUs</div>
+            )}
           </div>
           <div className="context-stat">
             <div className="context-stat-label">Opening Stock (40%)</div>
@@ -162,28 +173,76 @@ const RawMaterials = () => {
           </div>
         </div>
 
-        <table className="mini-sku-table">
-          <thead>
-            <tr>
-              <th>SKU</th>
-              <th>Mix %</th>
-              <th className="num">Demand (L)</th>
-              <th className="num">Opening (L)</th>
-              <th className="num">To Produce (L)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {computed.skuRows.map(r => (
-              <tr key={r.sku}>
-                <td className="sku-name">{r.sku}</td>
-                <td>{(SKU_WEIGHTS[r.sku] * 100).toFixed(0)}%</td>
-                <td className="num">{r.skuDemand.toLocaleString()}</td>
-                <td className="num">{r.skuOpening.toLocaleString()}</td>
-                <td className="num">{r.skuProduce.toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* Two side-by-side breakdown tables */}
+        <div className="bifurcation-row">
+
+          {/* Channel Breakdown */}
+          <div className="bifurcation-block">
+            <div className="bifurcation-title">📊 By Channel</div>
+            <table className="mini-sku-table">
+              <thead>
+                <tr>
+                  <th>Channel</th>
+                  <th className="num">Demand (L)</th>
+                  <th className="num">Opening (L)</th>
+                  <th className="num">To Produce (L)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {computed.channelRows.map(r => (
+                  <tr key={r.channel}>
+                    <td className="sku-name">{r.channel}</td>
+                    <td className="num">{r.chDemand.toLocaleString()}</td>
+                    <td className="num">{r.chOpening.toLocaleString()}</td>
+                    <td className="num">{r.chProduce.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="total-row">
+                  <td><strong>Total</strong></td>
+                  <td className="num"><strong>{computed.filteredDemand.toLocaleString()}</strong></td>
+                  <td className="num"><strong>{computed.opening.toLocaleString()}</strong></td>
+                  <td className="num"><strong>{computed.toProduce.toLocaleString()}</strong></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* SKU Breakdown */}
+          <div className="bifurcation-block">
+            <div className="bifurcation-title">🍦 By SKU</div>
+            <table className="mini-sku-table">
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th className="num">Demand (L)</th>
+                  <th className="num">Opening (L)</th>
+                  <th className="num">To Produce (L)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {computed.skuRows.map(r => (
+                  <tr key={r.sku}>
+                    <td className="sku-name">{r.sku}</td>
+                    <td className="num">{r.skuDemand.toLocaleString()}</td>
+                    <td className="num">{r.skuOpening.toLocaleString()}</td>
+                    <td className="num">{r.skuProduce.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="total-row">
+                  <td><strong>Total</strong></td>
+                  <td className="num"><strong>{computed.skuRows.reduce((s,r)=>s+r.skuDemand,0).toLocaleString()}</strong></td>
+                  <td className="num"><strong>{computed.skuRows.reduce((s,r)=>s+r.skuOpening,0).toLocaleString()}</strong></td>
+                  <td className="num"><strong>{computed.skuRows.reduce((s,r)=>s+r.skuProduce,0).toLocaleString()}</strong></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+        </div>
       </div>
 
       {/* ── ORDER CHECKLIST (show prominently if gaps exist) ───── */}
