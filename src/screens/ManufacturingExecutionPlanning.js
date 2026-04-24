@@ -14,12 +14,15 @@ const ManufacturingExecutionPlanning = () => {
 
   const [filters, setFilters] = useState({ channels, skus });
   const [showChart, setShowChart] = useState(false);
+  const [monthRange, setMonthRange] = useState({ start: 0, end: 11 });
 
   const MONTHLY_CAPACITY = PRODUCTION_STANDARDS.monthlyCapacity; // 1500 L/month
 
   // ── Build monthly summary rows ─────────────────────────────────
   const monthlyRows = useMemo(() => {
     return MONTH_LABELS.map((label, idx) => {
+      if (idx < monthRange.start || idx > monthRange.end) return null;
+
       const baseDemand = MONTHLY_DEMAND[idx];
 
       let filteredDemand = 0;
@@ -31,10 +34,9 @@ const ManufacturingExecutionPlanning = () => {
         });
       });
 
-      // Inventory: 40% of demand on hand; safety stock = 10 days of supply
+      // Inventory: 40% of demand on hand; production needed = demand - current inventory
       const currentInv      = Math.round(filteredDemand * 0.40);
-      const safetyStock     = Math.round((filteredDemand / 30) * INVENTORY_RULES.safetyStockDays);
-      const productionNeeded = Math.max(0, filteredDemand - currentInv + safetyStock);
+      const productionNeeded = Math.max(0, filteredDemand - currentInv);
       const utilPct         = Math.round((productionNeeded / MONTHLY_CAPACITY) * 100);
       const isForecast      = MONTH_TYPE[idx] === 'Forecast';
 
@@ -55,28 +57,29 @@ const ManufacturingExecutionPlanning = () => {
 
       return {
         label, shortLabel: MONTH_SHORT[idx], isForecast,
-        demand: filteredDemand, currentInv, safetyStock, productionNeeded,
+        demand: filteredDemand, currentInv, productionNeeded,
         utilPct, status, statusClass, decision,
       };
-    });
-  }, [filters]);
+    }).filter(r => r !== null);
+  }, [filters, monthRange]);
 
   // ── SKU annual summary (4 clean rows) ─────────────────────────
   const skuSummary = useMemo(() => {
     return skus.map(sku => {
       const skuRows = MONTH_LABELS.map((_, idx) => {
+        if (idx < monthRange.start || idx > monthRange.end) return null;
         let d = 0;
         filters.channels.forEach(ch => {
           d += Math.round(MONTHLY_DEMAND[idx] * CHANNEL_WEIGHTS[ch][idx] * SKU_WEIGHTS[sku]);
         });
         return { label: MONTH_LABELS[idx], demand: d };
-      });
+      }).filter(r => r !== null);
       const annual = skuRows.reduce((s, r) => s + r.demand, 0);
-      const peak   = skuRows.reduce((max, r) => r.demand > max.demand ? r : max);
-      const low    = skuRows.reduce((min, r) => r.demand < min.demand ? r : min);
-      return { sku, annual, peakMonth: peak.label, peakDemand: peak.demand, lowMonth: low.label };
+      const peak   = skuRows.reduce((max, r) => r.demand > max.demand ? r : max, { demand: 0 });
+      const low    = skuRows.reduce((min, r) => r.demand < min.demand ? r : min, { demand: Infinity });
+      return { sku, annual, peakMonth: peak.label || '—', peakDemand: peak.demand || 0, lowMonth: low.label || '—' };
     });
-  }, [filters, skus]);
+  }, [filters, skus, monthRange]);
 
   const prodAlerts    = DECISION_ALERTS.filter(a => a.screen === 'production');
   const overCapCount  = monthlyRows.filter(r => r.utilPct > 100).length;
@@ -101,6 +104,20 @@ const ManufacturingExecutionPlanning = () => {
               <div className="alert-card-action">{a.action}</div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* ── MONTH RANGE FILTER ───────────────────────────────── */}
+      <div className="filter-panel">
+        <div className="filter-group">
+          <label className="filter-label">📅 Month Range</label>
+          <select value={monthRange.start} onChange={e => setMonthRange(r => ({ ...r, start: parseInt(e.target.value) }))}>
+            {MONTH_LABELS.map((lbl, i) => <option key={i} value={i}>{lbl} (start)</option>)}
+          </select>
+          <span className="filter-sep">to</span>
+          <select value={monthRange.end} onChange={e => setMonthRange(r => ({ ...r, end: parseInt(e.target.value) }))}>
+            {MONTH_LABELS.map((lbl, i) => <option key={i} value={i}>{lbl} (end)</option>)}
+          </select>
         </div>
       </div>
 
@@ -139,29 +156,6 @@ const ManufacturingExecutionPlanning = () => {
         </div>
       </div>
 
-      {/* ── 12-MONTH CAPACITY OVERVIEW (visual bar) ──────────── */}
-      <div className="capacity-overview-section">
-        <div className="section-header">
-          <h2>📊 12-Month Capacity Overview</h2>
-          <p>Each block = 1 month. Colour shows if you can produce enough. <strong>Red/Orange months = pre-build inventory in advance.</strong></p>
-        </div>
-        <div className="capacity-bar-grid">
-          {monthlyRows.map((row, idx) => (
-            <div key={idx} className={`cap-block ${row.statusClass}`}>
-              <div className="cap-month">{row.shortLabel}</div>
-              <div className="cap-util">{row.utilPct}%</div>
-              <div className="cap-badge">{row.isForecast ? 'Fcst' : 'Actual'}</div>
-            </div>
-          ))}
-        </div>
-        <div className="cap-legend">
-          <span className="leg-item leg-ok">✅ ≤100% — Normal</span>
-          <span className="leg-item leg-caution">🟡 80–100% — Tight</span>
-          <span className="leg-item leg-warning">🟠 100–200% — Over-capacity</span>
-          <span className="leg-item leg-critical">🔴 &gt;200% — Critical</span>
-        </div>
-      </div>
-
       {/* ── PRIMARY TABLE ─────────────────────────────────────── */}
       <div className="table-section">
         <div className="section-header">
@@ -176,10 +170,8 @@ const ManufacturingExecutionPlanning = () => {
                 <th>Type</th>
                 <th className="number">Demand (L)</th>
                 <th className="number">In Stock (L)</th>
-                <th className="number">Safety Stock (L)</th>
                 <th className="number">Need to Produce (L)</th>
                 <th className="number">Capacity (L)</th>
-                <th className="number">Utilisation %</th>
                 <th>Decision</th>
               </tr>
             </thead>
@@ -194,10 +186,8 @@ const ManufacturingExecutionPlanning = () => {
                   </td>
                   <td className="number">{row.demand.toLocaleString()}</td>
                   <td className="number">{row.currentInv.toLocaleString()}</td>
-                  <td className="number">{row.safetyStock.toLocaleString()}</td>
                   <td className="number bold">{row.productionNeeded.toLocaleString()}</td>
                   <td className="number">{MONTHLY_CAPACITY.toLocaleString()}</td>
-                  <td className={`number util-${row.statusClass}`}>{row.utilPct}%</td>
                   <td className="decision-cell">{row.decision}</td>
                 </tr>
               ))}
@@ -242,49 +232,6 @@ const ManufacturingExecutionPlanning = () => {
                   </tr>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* ── LINE CAPACITY REFERENCE ───────────────────────────── */}
-      <div className="table-section">
-        <div className="section-header">
-          <h2>⚙️ Production Line Capacity</h2>
-          <p>Reference — 3 lines run simultaneously every working day.</p>
-        </div>
-        <div className="table-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Line</th>
-                <th>SKUs Made Here</th>
-                <th className="number">L/day</th>
-                <th className="number">L/month (20 days)</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { line: 'Line 1', skus: 'Vanilla, Caramel', day: 30, month: 600 },
-                { line: 'Line 2', skus: 'Mint, Chocolate',  day: 25, month: 500 },
-                { line: 'Line 3', skus: 'Vanilla, Caramel', day: 20, month: 400 },
-              ].map((l, i) => (
-                <tr key={i} className="status-ok">
-                  <td className="highlight">{l.line}</td>
-                  <td>{l.skus}</td>
-                  <td className="number">{l.day}</td>
-                  <td className="number">{l.month}</td>
-                  <td><span className="status-badge ok">✅ Operational</span></td>
-                </tr>
-              ))}
-              <tr className="total-row">
-                <td className="bold">TOTAL</td>
-                <td className="text-muted">All SKUs</td>
-                <td className="number bold">75</td>
-                <td className="number bold">1,500</td>
-                <td></td>
-              </tr>
             </tbody>
           </table>
         </div>

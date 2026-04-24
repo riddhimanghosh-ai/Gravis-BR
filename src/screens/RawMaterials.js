@@ -326,37 +326,6 @@ const RawMaterials = () => {
         </div>
       </div>
 
-      {/* ── BOM REFERENCE ──────────────────────────────────────── */}
-      <div className="table-section">
-        <h2>📋 Bill of Materials Reference (per 100 L produced)</h2>
-        <p>Fixed recipe ratios used to calculate all requirements above.</p>
-        <div className="table-wrapper">
-          <table className="rm-table">
-            <thead>
-              <tr>
-                <th>Ingredient</th>
-                {selectedSkus.map(s => <th key={s} className="num">{s}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {RAW_MATERIAL_INVENTORY.map(rm => (
-                <tr key={rm.name}>
-                  <td className="rm-ingredient-name">{rm.name} ({rm.unit}/100 L)</td>
-                  {selectedSkus.map(sku => {
-                    const entry = RAW_MATERIAL_BOM[sku]?.[rm.name];
-                    return (
-                      <td key={sku} className="num">
-                        {entry ? entry.qty : <span style={{ color: '#ccc' }}>—</span>}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
     </div>
   );
 };
