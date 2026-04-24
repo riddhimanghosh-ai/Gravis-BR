@@ -9,6 +9,7 @@ import {
   CHANNEL_WEIGHTS, SKU_WEIGHTS,
   FORECAST_CI, DECISION_ALERTS, PRODUCTION_STANDARDS,
 } from '../data/realisticSampleData';
+import MultiSelectDropdown from '../components/MultiSelectDropdown';
 import '../styles/DemandForecast12Month.css';
 
 const DemandForecast12Month = () => {
@@ -22,20 +23,6 @@ const DemandForecast12Month = () => {
   const [selectedChannels, setSelectedChannels] = useState(allChannels);
   const [showCharts, setShowCharts] = useState(false);
   const [showMatrix, setShowMatrix] = useState(false);
-
-  // Toggle SKU
-  const toggleSku = sku => {
-    setSelectedSkus(prev =>
-      prev.includes(sku) ? prev.filter(s => s !== sku) : [...prev, sku]
-    );
-  };
-
-  // Toggle Channel
-  const toggleChannel = ch => {
-    setSelectedChannels(prev =>
-      prev.includes(ch) ? prev.filter(c => c !== ch) : [...prev, ch]
-    );
-  };
 
   // ── Build monthly data ──────────────────────────────────
   const monthlyRows = useMemo(() => {
@@ -162,38 +149,22 @@ const DemandForecast12Month = () => {
           </select>
         </div>
 
-        {/* SKU multi-select */}
-        <div className="filter-group">
-          <label className="filter-label">🍦 SKUs</label>
-          <div className="checkbox-group">
-            {allSkus.map(sku => (
-              <label key={sku} className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={selectedSkus.includes(sku)}
-                  onChange={() => toggleSku(sku)}
-                />
-                {sku}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Channel multi-select */}
-        <div className="filter-group">
-          <label className="filter-label">🏪 Channels</label>
-          <div className="checkbox-group">
-            {allChannels.map(ch => (
-              <label key={ch} className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={selectedChannels.includes(ch)}
-                  onChange={() => toggleChannel(ch)}
-                />
-                {ch}
-              </label>
-            ))}
-          </div>
+        {/* SKU + Channel dropdowns */}
+        <div className="filter-group filter-group-dropdowns">
+          <MultiSelectDropdown
+            label="🍦 SKUs"
+            options={allSkus}
+            selected={selectedSkus}
+            onChange={setSelectedSkus}
+            allLabel="All SKUs"
+          />
+          <MultiSelectDropdown
+            label="🏪 Channels"
+            options={allChannels}
+            selected={selectedChannels}
+            onChange={setSelectedChannels}
+            allLabel="All Channels"
+          />
         </div>
       </div>
 

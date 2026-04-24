@@ -8,7 +8,9 @@ import {
   SHELF_LIFE, PRODUCTION_STANDARDS, LIVE_LINE_STATUS,
   WEEKLY_SCHEDULE_TEMPLATE,
 } from '../data/realisticSampleData';
+import MultiSelectDropdown from '../components/MultiSelectDropdown';
 import '../styles/FGInventory.css';
+import '../styles/FilterPanel.css';
 
 const SKUS             = ['Vanilla', 'Caramel', 'Mint', 'Chocolate'];
 const CURRENT_IDX      = 6;  // Apr 2026
@@ -40,6 +42,7 @@ const formatDate = d => d.toLocaleDateString('en-IN', { day: 'numeric', month: '
 
 const FGInventory = () => {
   const [showProjection, setShowProjection] = useState(true);
+  const [selectedSkus, setSelectedSkus] = useState(SKUS);
   const monthDemand = MONTHLY_DEMAND[CURRENT_IDX]; // 1850 L
 
   // ── Per-SKU computed rows ────────────────────────────────────
@@ -89,15 +92,21 @@ const FGInventory = () => {
     };
   }), [monthDemand]);
 
-  const totalStock   = rows.reduce((s, r) => s + r.stock, 0);
-  const criticalSkus = rows.filter(r => r.status.key === 'critical' || r.status.key === 'tight');
-  const produceNow   = rows.filter(r => r.needProduction);
+  // ── Filtered rows (by SKU selection) ───────────────────────
+  const filteredRows = useMemo(
+    () => rows.filter(r => selectedSkus.includes(r.sku)),
+    [rows, selectedSkus]
+  );
+
+  const totalStock   = filteredRows.reduce((s, r) => s + r.stock, 0);
+  const criticalSkus = filteredRows.filter(r => r.status.key === 'critical' || r.status.key === 'tight');
+  const produceNow   = filteredRows.filter(r => r.needProduction);
 
   // Monthly capacity per SKU (proportional)
   const skuCapacity = sku => Math.round(CAPACITY * SKU_WEIGHTS[sku]);
 
   // ── Chart data ───────────────────────────────────────────────
-  const chartData = rows.map(r => ({
+  const chartData = filteredRows.map(r => ({
     sku: r.sku,
     stock: r.stock,
     cover: r.daysOfCover,
@@ -117,6 +126,19 @@ const FGInventory = () => {
         </div>
       </header>
 
+      {/* ── SKU FILTER ────────────────────────────────────────── */}
+      <div className="filter-panel" style={{ marginBottom: '16px' }}>
+        <div className="fp-row">
+          <MultiSelectDropdown
+            label="🍦 SKUs"
+            options={SKUS}
+            selected={selectedSkus}
+            onChange={setSelectedSkus}
+            allLabel="All SKUs"
+          />
+        </div>
+      </div>
+
       {/* ── ACTION BANNER ─────────────────────────────────────── */}
       {produceNow.length > 0 && (
         <div className="action-banner">
@@ -133,7 +155,7 @@ const FGInventory = () => {
         <div className="fg-kpi">
           <div className="fg-kpi-val">{totalStock.toLocaleString()} L</div>
           <div className="fg-kpi-label">Total FG Stock</div>
-          <div className="fg-kpi-sub">Across {SKUS.length} SKUs</div>
+          <div className="fg-kpi-sub">Across {filteredRows.length} SKU{filteredRows.length !== 1 ? 's' : ''}</div>
         </div>
         <div className={`fg-kpi ${criticalSkus.length > 0 ? 'fkpi-warn' : 'fkpi-ok'}`}>
           <div className="fg-kpi-val">{criticalSkus.length}</div>
@@ -154,7 +176,7 @@ const FGInventory = () => {
 
       {/* ── SKU CARDS (main section) ──────────────────────────── */}
       <div className="sku-cards-grid">
-        {rows.map(r => (
+        {filteredRows.map(r => (
           <div key={r.sku} className={`sku-card sc-${r.status.key}`}>
 
             {/* Card header */}
@@ -266,7 +288,7 @@ const FGInventory = () => {
                 </tr>
               </thead>
               <tbody>
-                {rows.map(r => {
+                {filteredRows.map(r => {
                   const proj = [r.stock, r.w1End, r.w2End, r.w3End, r.w4End];
                   return (
                     <tr key={r.sku}>
@@ -290,15 +312,9 @@ const FGInventory = () => {
                 })}
                 {/* Weekly production + demand reference row */}
                 <tr className="ref-row">
-                  <td className="grey-text">Weekly produced (Wk1–4)</td>
-                  {[null, ...rows.map(r => null)].map((_, i) => i === 0 ? (
-                    <td key={0} />
-                  ) : null)}
-                </tr>
-                <tr className="ref-row">
-                  <td colSpan={6} className="grey-text small-text">
-                    Weekly demand: {rows.map(r => `${r.sku} ${r.weeklyDemand}L`).join(' · ')} &nbsp;·&nbsp;
-                    Weekly production Wk1: {rows.map(r => `${r.sku} ${r.weeklyProdW1}L`).join(' · ')}
+                  <td colSpan={7} className="grey-text small-text">
+                    Weekly demand: {filteredRows.map(r => `${r.sku} ${r.weeklyDemand}L`).join(' · ')} &nbsp;·&nbsp;
+                    Weekly production Wk1: {filteredRows.map(r => `${r.sku} ${r.weeklyProdW1}L`).join(' · ')}
                   </td>
                 </tr>
               </tbody>
@@ -328,7 +344,7 @@ const FGInventory = () => {
               </tr>
             </thead>
             <tbody>
-              {rows.map(r => {
+              {filteredRows.map(r => {
                 const cap = skuCapacity(r.sku);
                 const gap = r.monthlyDemand - (cap + r.stock);
                 const canMeet = gap <= 0;

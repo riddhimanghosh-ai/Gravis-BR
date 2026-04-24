@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import MultiSelectDropdown from '../components/MultiSelectDropdown';
 import {
   MONTH_LABELS,
   MONTHLY_DEMAND,
@@ -18,14 +19,6 @@ const CAPACITY = PRODUCTION_STANDARDS.monthlyCapacity; // 1500 L
 const RawMaterials = () => {
   const [monthIdx, setMonthIdx] = useState(6); // Apr 2026 default
   const [selectedSkus, setSelectedSkus] = useState(['Vanilla', 'Caramel', 'Mint', 'Chocolate']); // all selected by default
-
-  const toggleSku = (sku) => {
-    setSelectedSkus(prev =>
-      prev.includes(sku)
-        ? prev.filter(s => s !== sku)
-        : [...prev, sku]
-    );
-  };
 
   const computed = useMemo(() => {
     const fullDemand = MONTHLY_DEMAND[monthIdx];
@@ -129,23 +122,14 @@ const RawMaterials = () => {
       </div>
 
       {/* ── SKU FILTER ─────────────────────────────────────────── */}
-      <div style={{ marginBottom: '20px', padding: '12px 14px', background: '#fafafa', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-        <div style={{ fontSize: '12px', fontWeight: 600, color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Filter by SKU
-        </div>
-        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-          {SKUS.map(sku => (
-            <label key={sku} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}>
-              <input
-                type="checkbox"
-                checked={selectedSkus.includes(sku)}
-                onChange={() => toggleSku(sku)}
-                style={{ cursor: 'pointer', width: '16px', height: '16px' }}
-              />
-              {sku}
-            </label>
-          ))}
-        </div>
+      <div style={{ marginBottom: '20px' }}>
+        <MultiSelectDropdown
+          label="🍦 SKUs"
+          options={SKUS}
+          selected={selectedSkus}
+          onChange={setSelectedSkus}
+          allLabel="All SKUs"
+        />
       </div>
 
       {/* ── FG PRODUCTION CONTEXT ──────────────────────────────── */}
