@@ -55,8 +55,10 @@ const DemandForecast12Month = () => {
         channelBreakdown[ch] = chDemand;
       });
 
-      // Planner action (utilPct-based) — match MEP logic
-      const utilPct = Math.round((filteredDemand / capacity) * 100);
+      // Planner action (based on TOTAL facility demand, not just selected SKU)
+      // This ensures capacity constraints are shown regardless of which SKU is selected
+      const totalFacilityDemand = baseDemand; // all channels × all SKUs
+      const utilPct = Math.round((totalFacilityDemand / capacity) * 100);
       let plannerAction;
       if (utilPct > 130) {
         plannerAction = { label: `🔴 Over-capacity (${utilPct}%) — pre-build inventory in prior months`, cls: 'action-critical' };
