@@ -63,6 +63,27 @@ const ProductionDecision = () => {
     return { totalDemand, totalOpening, totalDeficit, totalBuffer, spareCapacity };
   }, [skuRows, CAPACITY]);
 
+  // ── 12-Month Production Plan (all months, Option C) ──────────
+  const monthlyProductionPlan = useMemo(() => {
+    return MONTH_LABELS.map((label, idx) => {
+      const demand = MONTHLY_DEMAND[idx];
+      const planRow = { month: label, totalDemand: demand };
+
+      Object.entries(SKU_WEIGHTS).forEach(([sku, weight]) => {
+        const skuDemand = Math.round(demand * weight);
+        const skuOpening = Math.round(skuDemand * OPENING_RATIO);
+        const skuDeficit = skuDemand - skuOpening;
+        const sigma = Math.round(skuDemand * assumptions.CV);
+        const buffer = Math.round(assumptions.Z * sigma);
+        // Option C: deficit + buffer
+        planRow[`${sku}_demand`] = skuDemand;
+        planRow[`${sku}_prod`] = Math.min(skuDeficit + buffer, Math.round(CAPACITY * weight));
+      });
+
+      return planRow;
+    });
+  }, [OPENING_RATIO, assumptions.CV, assumptions.Z, CAPACITY]);
+
   // ── Option A — Deficit only ─────────────────────────────────
   const optionA = useMemo(() => {
     const targetProduction = totals.totalDeficit;
@@ -272,8 +293,6 @@ const ProductionDecision = () => {
                 <th className="num">Forecast Demand</th>
                 <th className="num">Opening FG</th>
                 <th className="num">Deficit</th>
-                <th className="num">σ (15%)</th>
-                <th className="num">Buffer (Z·σ)</th>
                 <th className="num">Option A</th>
                 <th className="num">Option B</th>
                 <th className="num col-highlight">Option C ✓</th>
@@ -286,8 +305,6 @@ const ProductionDecision = () => {
                   <td className="num">{r.demand.toLocaleString('en-IN')}</td>
                   <td className="num">{r.opening.toLocaleString('en-IN')}</td>
                   <td className="num">{r.deficit.toLocaleString('en-IN')}</td>
-                  <td className="num">{r.sigma.toLocaleString('en-IN')}</td>
-                  <td className="num">{r.buffer.toLocaleString('en-IN')}</td>
                   <td className="num">{r.optionA.toLocaleString('en-IN')}</td>
                   <td className="num">{r.optionB.toLocaleString('en-IN')}</td>
                   <td className="num col-highlight"><strong>{r.optionC.toLocaleString('en-IN')}</strong></td>
@@ -298,8 +315,6 @@ const ProductionDecision = () => {
                 <td className="num">{totals.totalDemand.toLocaleString('en-IN')}</td>
                 <td className="num">{totals.totalOpening.toLocaleString('en-IN')}</td>
                 <td className="num">{totals.totalDeficit.toLocaleString('en-IN')}</td>
-                <td className="num">—</td>
-                <td className="num">{totals.totalBuffer.toLocaleString('en-IN')}</td>
                 <td className="num">{optionA.production.toLocaleString('en-IN')}</td>
                 <td className="num">{optionB.production.toLocaleString('en-IN')}</td>
                 <td className="num col-highlight"><strong>{optionC.production.toLocaleString('en-IN')}</strong></td>
@@ -311,6 +326,40 @@ const ProductionDecision = () => {
           SKU weights: Vanilla 55% · Caramel 22% · Mint 18% · Chocolate 5%.
           Option B allocates full monthly capacity pro-rata.
         </p>
+      </div>
+
+      {/* ── MONTHLY PRODUCTION PLAN BY SKU ──────────────────── */}
+      <div className="section-card">
+        <h2 className="section-title">📅 Monthly Production Plan (Option C) — Demand vs Production</h2>
+        <p className="section-subtitle">Shows what each SKU should produce each month to meet demand + safety buffer.</p>
+
+        <div className="prod-plan-grid">
+          {['Vanilla', 'Caramel', 'Mint', 'Chocolate'].map(sku => (
+            <div key={sku} className="prod-plan-card">
+              <div className="prod-plan-header">{sku}</div>
+              <div className="table-wrap">
+                <table className="prod-plan-table">
+                  <thead>
+                    <tr>
+                      <th className="month-col">Month</th>
+                      <th className="num">Demand (L)</th>
+                      <th className="num">Production (L)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthlyProductionPlan.map((row, idx) => (
+                      <tr key={idx} className={idx === monthIdx ? 'current-month' : ''}>
+                        <td className="month-col">{row.month}</td>
+                        <td className="num">{(row[`${sku}_demand`] || 0).toLocaleString('en-IN')}</td>
+                        <td className="num"><strong>{(row[`${sku}_prod`] || 0).toLocaleString('en-IN')}</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── OPTION CARDS ───────────────────────────────────── */}
