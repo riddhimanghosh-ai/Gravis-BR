@@ -19,7 +19,7 @@ const DemandForecast12Month = () => {
 
   // ── Filter state ────────────────────────────────────────
   const [monthRange, setMonthRange] = useState({ start: 0, end: 11 });
-  const [selectedSkus, setSelectedSkus] = useState(allSkus);
+  const [selectedSku, setSelectedSku] = useState('Vanilla');
   const [selectedChannels, setSelectedChannels] = useState(allChannels);
   const [showCharts, setShowCharts] = useState(false);
   const [showMatrix, setShowMatrix] = useState(false);
@@ -32,14 +32,12 @@ const DemandForecast12Month = () => {
       const isForecast = MONTH_TYPE[idx] === 'Forecast';
       const baseDemand = MONTHLY_DEMAND[idx];
 
-      // Filtered demand: sum only selected channels × skus
+      // Filtered demand: sum only selected channels × selected SKU
       let filteredDemand = 0;
       selectedChannels.forEach(ch => {
-        selectedSkus.forEach(sku => {
-          filteredDemand += Math.round(
-            baseDemand * CHANNEL_WEIGHTS[ch][idx] * SKU_WEIGHTS[sku]
-          );
-        });
+        filteredDemand += Math.round(
+          baseDemand * CHANNEL_WEIGHTS[ch][idx] * SKU_WEIGHTS[selectedSku]
+        );
       });
 
       // CI for forecast months
@@ -53,21 +51,8 @@ const DemandForecast12Month = () => {
       // Channel breakdown
       let channelBreakdown = {};
       selectedChannels.forEach(ch => {
-        let chDemand = 0;
-        selectedSkus.forEach(sku => {
-          chDemand += Math.round(baseDemand * CHANNEL_WEIGHTS[ch][idx] * SKU_WEIGHTS[sku]);
-        });
+        let chDemand = Math.round(baseDemand * CHANNEL_WEIGHTS[ch][idx] * SKU_WEIGHTS[selectedSku]);
         channelBreakdown[ch] = chDemand;
-      });
-
-      // SKU breakdown
-      let skuBreakdown = {};
-      selectedSkus.forEach(sku => {
-        let skuDemand = 0;
-        selectedChannels.forEach(ch => {
-          skuDemand += Math.round(baseDemand * CHANNEL_WEIGHTS[ch][idx] * SKU_WEIGHTS[sku]);
-        });
-        skuBreakdown[sku] = skuDemand;
       });
 
       // Planner action (utilPct-based)
@@ -91,11 +76,10 @@ const DemandForecast12Month = () => {
         forecastLower: isForecast ? Math.round(filteredDemand * ci.lower) : null,
         forecastUpper: isForecast ? Math.round(filteredDemand * ci.upper) : null,
         ...channelBreakdown,
-        ...skuBreakdown,
         plannerAction, utilPct, capacity,
       };
     }).filter(r => r !== null);
-  }, [monthRange, selectedSkus, selectedChannels]);
+  }, [monthRange, selectedSku, selectedChannels]);
 
   // ── Summary metrics ────────────────────────────────────
   const metrics = useMemo(() => {
@@ -151,13 +135,12 @@ const DemandForecast12Month = () => {
 
         {/* SKU + Channel dropdowns */}
         <div className="filter-group filter-group-dropdowns">
-          <MultiSelectDropdown
-            label="🍦 SKUs"
-            options={allSkus}
-            selected={selectedSkus}
-            onChange={setSelectedSkus}
-            allLabel="All SKUs"
-          />
+          <div className="filter-control">
+            <label className="filter-label">🍦 SKU</label>
+            <select value={selectedSku} onChange={e => setSelectedSku(e.target.value)} className="filter-select">
+              {allSkus.map(sku => <option key={sku} value={sku}>{sku}</option>)}
+            </select>
+          </div>
           <MultiSelectDropdown
             label="🏪 Channels"
             options={allChannels}
@@ -187,18 +170,18 @@ const DemandForecast12Month = () => {
             <div className="metric-subtext">{metrics.peak?.demand?.toLocaleString()} L</div>
           </div>
           <div className="metric-card">
-            <div className="metric-label">SKUs Selected</div>
-            <div className="metric-value">{selectedSkus.length}</div>
+            <div className="metric-label">SKU Selected</div>
+            <div className="metric-value">{selectedSku}</div>
             <div className="metric-subtext">Channels: {selectedChannels.length}</div>
           </div>
         </div>
       )}
 
-      {/* ── TABLES ────────────────────────────────────────── */}
+      {/* ── TABLE ────────────────────────────────────────── */}
       <div className="table-section">
         <div className="section-header">
           <h2>📋 Demand Plan by Channels</h2>
-          <p>Channels: {selectedChannels.join(', ')}</p>
+          <p>SKU: <strong>{selectedSku}</strong> &nbsp;|&nbsp; Channels: {selectedChannels.join(', ')}</p>
         </div>
 
         <div className="table-wrapper">
@@ -223,44 +206,6 @@ const DemandForecast12Month = () => {
                   <td className="number bold">{row.demand.toLocaleString()}</td>
                   {selectedChannels.map(ch => (
                     <td key={ch} className="number">{(row[ch] || 0).toLocaleString()}</td>
-                  ))}
-                  <td><span className={`action-badge ${row.plannerAction.cls}`}>{row.plannerAction.label}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* ── SKU TABLE ────────────────────────────────────── */}
-      <div className="table-section">
-        <div className="section-header">
-          <h2>🍦 Demand Plan by SKUs</h2>
-          <p>SKUs: {selectedSkus.join(', ')}</p>
-        </div>
-
-        <div className="table-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Month</th>
-                <th className="number">Total Demand (L)</th>
-                {selectedSkus.map(sku => <th key={sku} className="number">{sku} (L)</th>)}
-                <th>Planner Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {monthlyRows.map((row, idx) => (
-                <tr key={idx} className={row.isForecast ? 'row-forecast' : 'row-actual'}>
-                  <td className="highlight">
-                    {row.label}
-                    <span className={`month-type-badge ${row.isForecast ? 'badge-forecast' : 'badge-actual'}`}>
-                      {row.isForecast ? 'Forecast' : 'Actual'}
-                    </span>
-                  </td>
-                  <td className="number bold">{row.demand.toLocaleString()}</td>
-                  {selectedSkus.map(sku => (
-                    <td key={sku} className="number">{(row[sku] || 0).toLocaleString()}</td>
                   ))}
                   <td><span className={`action-badge ${row.plannerAction.cls}`}>{row.plannerAction.label}</span></td>
                 </tr>
