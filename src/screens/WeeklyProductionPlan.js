@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { WEEKLY_SCHEDULE_TEMPLATE, PRODUCTION_STANDARDS } from '../data/realisticSampleData';
 import '../styles/WeeklyProductionPlan.css';
 
@@ -13,7 +13,6 @@ const SKU_COLORS = {
   Chocolate: { bg: '#F7F0EF', border: '#4a2c2a', text: '#2c1a19', pill: '#7a4a48' },
 };
 
-// Non-production block styles
 const BLOCK_STYLE = {
   startup:    { bg: '#F5F5F5', border: '#bdbdbd', text: '#757575' },
   break:      { bg: '#E3F2FD', border: '#64B5F6', text: '#1565C0' },
@@ -22,78 +21,79 @@ const BLOCK_STYLE = {
   downtime:   { bg: '#FFCDD2', border: '#E57373', text: '#B71C1C' },
 };
 
-const DAY_NAMES    = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-const LINES        = ['Line 1', 'Line 2', 'Line 3'];
+const DAY_NAMES  = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+const LINES      = ['Line 1', 'Line 2', 'Line 3'];
+const OPERATORS  = { 'Line 1': 'A. Kumar', 'Line 2': 'P. Reddy', 'Line 3': 'R. Singh' };
 
-// Intraday timeline — 08:00 to 18:00
-const TL_START = 8;
-const TL_END   = 18;
-const TL_SPAN  = TL_END - TL_START;
-const HOUR_MARKS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
-const SIMULATED_NOW_H = 10 + 45 / 60; // 10:45 — Apr 23 snapshot
+// Timeline coordinate system
+// Each day spans 10 "work-hours" = 08:00–18:00
+// Total: 5 days × 10h = 50 work-hours across the week
+const TL_HPD   = 10;   // hours per day visible (08:00–18:00)
+const TL_TOTAL = 50;   // 5 × 10
+const tlPct    = pos => (pos / TL_TOTAL) * 100;
 
-const toPct = h => ((h - TL_START) / TL_SPAN) * 100;
-
-const INTRADAY_OPERATORS = { 'Line 1': 'A. Kumar', 'Line 2': 'P. Reddy', 'Line 3': 'R. Singh' };
-
-const fmtH = h => {
-  const hh = Math.floor(h);
-  const mm = Math.round((h - hh) * 60);
-  return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
-};
-const hourLabel = h => h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h-12}pm`;
-
-/* ══════════════════════════════════════════════════════════
-   INTRADAY BLOCK GENERATOR
-   Returns an array of blocks: { startH, endH, type, sku?,
-   qty?, label, from?, to? }
-   isToday only applies to Line 3 (compressor fault today)
-══════════════════════════════════════════════════════════ */
-const getIntradayBlocks = (line, isToday, vanillaL = 3, caramelL = 2.4, mintL = 2.5, chocL = 1.8, vanillaL3 = 4) => {
-  if (line === 'Line 1') {
-    return [
-      { startH:  8.00, endH:  8.25, type: 'startup',    label: 'Pre-op check — 15 min' },
-      { startH:  8.25, endH: 12.50, type: 'production', sku: 'Vanilla',  qty: vanillaL,  label: `Vanilla — ${vanillaL.toFixed(1)} L` },
-      { startH: 12.50, endH: 13.00, type: 'break',      label: 'Lunch break — 30 min' },
-      { startH: 13.00, endH: 13.75, type: 'changeover', from: 'Vanilla', to: 'Caramel',      label: 'Changeover: Vanilla → Caramel — 45 min' },
-      { startH: 13.75, endH: 17.00, type: 'production', sku: 'Caramel',  qty: caramelL,  label: `Caramel — ${caramelL.toFixed(1)} L` },
-      { startH: 17.00, endH: 17.50, type: 'cip',        label: 'CIP sanitation — 30 min' },
-    ];
-  }
-  if (line === 'Line 2') {
-    return [
-      { startH:  8.00, endH:  8.50, type: 'startup',    label: 'Pre-op check — 30 min' },
-      { startH:  8.50, endH: 12.50, type: 'production', sku: 'Mint',       qty: mintL,   label: `Mint — ${mintL.toFixed(1)} L` },
-      { startH: 12.50, endH: 13.00, type: 'break',      label: 'Lunch break — 30 min' },
-      { startH: 13.00, endH: 14.00, type: 'changeover', from: 'Mint', to: 'Chocolate',   label: 'Changeover: Mint → Chocolate — 60 min' },
-      { startH: 14.00, endH: 17.00, type: 'production', sku: 'Chocolate',  qty: chocL,   label: `Chocolate — ${chocL.toFixed(1)} L` },
-      { startH: 17.00, endH: 17.50, type: 'cip',        label: 'CIP sanitation — 30 min' },
-    ];
-  }
-  if (line === 'Line 3') {
-    if (isToday) {
-      return [
-        { startH:  8.00, endH:  8.25, type: 'startup',    label: 'Pre-op check — 15 min' },
-        { startH:  8.25, endH:  9.25, type: 'production', sku: 'Vanilla', qty: 2.5,               label: 'Vanilla — 2.5 L (early run)' },
-        { startH:  9.25, endH: 12.50, type: 'downtime',   label: '🔴 Unplanned: compressor fault (expected resume 12:30)' },
-        { startH: 12.50, endH: 13.00, type: 'break',      label: 'Lunch break — 30 min' },
-        { startH: 13.00, endH: 17.00, type: 'production', sku: 'Vanilla', qty: vanillaL3 * 0.75,  label: `Vanilla — ${(vanillaL3 * 0.75).toFixed(1)} L (resumed)` },
-        { startH: 17.00, endH: 17.50, type: 'cip',        label: 'CIP sanitation — 30 min' },
-      ];
-    }
-    return [
-      { startH:  8.00, endH:  8.25, type: 'startup',    label: 'Pre-op check — 15 min' },
-      { startH:  8.25, endH: 12.50, type: 'production', sku: 'Vanilla', qty: vanillaL3 * 0.55, label: `Vanilla — ${(vanillaL3 * 0.55).toFixed(1)} L` },
-      { startH: 12.50, endH: 13.00, type: 'break',      label: 'Lunch break — 30 min' },
-      { startH: 13.00, endH: 17.00, type: 'production', sku: 'Vanilla', qty: vanillaL3 * 0.45, label: `Vanilla — ${(vanillaL3 * 0.45).toFixed(1)} L` },
-      { startH: 17.00, endH: 17.50, type: 'cip',        label: 'CIP sanitation — 30 min' },
-    ];
-  }
-  return [];
+// Intraday reality: every day, Line 1 → Vanilla AM then Caramel PM;
+// Line 2 → Mint AM then Chocolate PM; Line 3 → Vanilla all day
+// pos = day * TL_HPD + (clockHour - 8)
+const makeBlocks = (d, v1, c1, m2, ch, v3, isToday) => {
+  const o = d * TL_HPD;
+  return {
+    'Line 1': [
+      { s: o+0.00, e: o+0.25, type: 'startup',    label: 'Pre-op check (15 min)' },
+      { s: o+0.25, e: o+4.50, type: 'production', sku: 'Vanilla',  qty: v1,              label: `Vanilla — ${v1.toFixed(1)} L` },
+      { s: o+4.50, e: o+5.00, type: 'break',      label: 'Lunch break (30 min)' },
+      { s: o+5.00, e: o+5.75, type: 'changeover', from: 'Vanilla', to: 'Caramel',        label: 'Changeover: Vanilla → Caramel (45 min)' },
+      { s: o+5.75, e: o+9.00, type: 'production', sku: 'Caramel',  qty: c1,              label: `Caramel — ${c1.toFixed(1)} L` },
+      { s: o+9.00, e: o+9.50, type: 'cip',        label: 'CIP sanitation (30 min)' },
+    ],
+    'Line 2': [
+      { s: o+0.00, e: o+0.50, type: 'startup',    label: 'Pre-op check (30 min)' },
+      { s: o+0.50, e: o+4.50, type: 'production', sku: 'Mint',       qty: m2,            label: `Mint — ${m2.toFixed(1)} L` },
+      { s: o+4.50, e: o+5.00, type: 'break',      label: 'Lunch break (30 min)' },
+      { s: o+5.00, e: o+6.00, type: 'changeover', from: 'Mint', to: 'Chocolate',         label: 'Changeover: Mint → Chocolate (60 min)' },
+      { s: o+6.00, e: o+9.00, type: 'production', sku: 'Chocolate',  qty: ch,            label: `Chocolate — ${ch.toFixed(1)} L` },
+      { s: o+9.00, e: o+9.50, type: 'cip',        label: 'CIP sanitation (30 min)' },
+    ],
+    'Line 3': isToday ? [
+      { s: o+0.00, e: o+0.25, type: 'startup',    label: 'Pre-op check (15 min)' },
+      { s: o+0.25, e: o+1.25, type: 'production', sku: 'Vanilla', qty: 2.5,              label: 'Vanilla — 2.5 L (early run)' },
+      { s: o+1.25, e: o+4.50, type: 'downtime',   label: '🔴 Compressor fault (09:15 – 12:30, est. resume)' },
+      { s: o+4.50, e: o+5.00, type: 'break',      label: 'Lunch break' },
+      { s: o+5.00, e: o+9.00, type: 'production', sku: 'Vanilla', qty: +(v3*0.75).toFixed(1), label: `Vanilla — ${(v3*0.75).toFixed(1)} L (resumed)` },
+      { s: o+9.00, e: o+9.50, type: 'cip',        label: 'CIP sanitation' },
+    ] : [
+      { s: o+0.00, e: o+0.25, type: 'startup',    label: 'Pre-op check (15 min)' },
+      { s: o+0.25, e: o+4.50, type: 'production', sku: 'Vanilla', qty: +(v3*0.55).toFixed(1), label: `Vanilla — ${(v3*0.55).toFixed(1)} L` },
+      { s: o+4.50, e: o+5.00, type: 'break',      label: 'Lunch break (30 min)' },
+      { s: o+5.00, e: o+9.00, type: 'production', sku: 'Vanilla', qty: +(v3*0.45).toFixed(1), label: `Vanilla — ${(v3*0.45).toFixed(1)} L` },
+      { s: o+9.00, e: o+9.50, type: 'cip',        label: 'CIP sanitation (30 min)' },
+    ],
+  };
 };
 
+// Full week timeline: 5 days, each with the intraday pattern
+const buildWeekTimeline = (isWeek1, dq) => {
+  const v1 = dq['Vanilla::Line 1']   || 3.2;
+  const c1 = dq['Caramel::Line 1']   || 2.4;
+  const m2 = dq['Mint::Line 2']      || 2.5;
+  const ch = dq['Chocolate::Line 2'] || 1.8;
+  const v3 = dq['Vanilla::Line 3']   || 4.0;
+  const result = { 'Line 1': [], 'Line 2': [], 'Line 3': [] };
+  for (let d = 0; d < 5; d++) {
+    const isToday = isWeek1 && d === 3; // Thu Apr 23
+    const day = makeBlocks(d, v1, c1, m2, ch, v3, isToday);
+    LINES.forEach(ln => { result[ln].push(...day[ln]); });
+  }
+  return result;
+};
+
+// "Now" position — Thu Apr 23, 10:45
+const NOW_PCT = tlPct(3 * TL_HPD + (10.75 - 8)); // day 3, 2.75h into shift = 65.5%
+
+const hourLabel = h => h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`;
+
 /* ══════════════════════════════════════════════════════════
-   WEEKLY SCHEDULE GENERATOR (unchanged logic)
+   WEEKLY SCHEDULE (unchanged logic, used for Cards/Kanban)
 ══════════════════════════════════════════════════════════ */
 const generateWeeklySchedule = () => {
   const weeks = [];
@@ -111,8 +111,7 @@ const generateWeeklySchedule = () => {
   for (let week = 0; week < 8; week++) {
     const weekStart = new Date(startDate);
     weekStart.setDate(weekStart.getDate() + week * 7);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 4);
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 4);
     const schedule = [];
     const weeklyDemandBySku = {};
     skus.forEach(sku => { weeklyDemandBySku[sku] = (skuDemandByWeek[sku][week] || 0) * 5; });
@@ -120,24 +119,21 @@ const generateWeeklySchedule = () => {
     const totalCapacity = PRODUCTION_STANDARDS.totalDailyCapacity * 5;
 
     skus.forEach(sku => {
-      let remainingDemand = weeklyDemandBySku[sku];
+      let rem = weeklyDemandBySku[sku];
       skuToLines[sku].forEach(line => {
-        const lineCapacity = lineCapacities[line];
-        const lineWeekCap  = lineCapacity * 5;
-        const lineDemand   = Math.min(remainingDemand, lineWeekCap);
-        const daysNeeded   = Math.ceil(lineDemand / lineCapacity);
-        const utilPct      = Math.round((lineDemand / lineWeekCap) * 100);
+        const cap = lineCapacities[line];
+        const lineDemand = Math.min(rem, cap * 5);
+        const utilPct = Math.round((lineDemand / (cap * 5)) * 100);
         if (lineDemand > 0) {
           schedule.push({
             sku, line, demand: lineDemand,
-            dailyProduction: Math.ceil(lineDemand / daysNeeded),
-            daysNeeded: Math.min(daysNeeded, 5),
-            startDay: 'Mon', endDay: DAY_NAMES[Math.min(daysNeeded - 1, 4)],
+            dailyProduction: Math.ceil(lineDemand / 5),
+            daysNeeded: 5, startDay: 'Mon', endDay: 'Fri',
             totalProduction: Math.ceil(lineDemand),
             utilPct, remark: `${utilPct}% of line capacity`,
           });
         }
-        remainingDemand -= lineDemand;
+        rem -= lineDemand;
       });
     });
 
@@ -158,55 +154,32 @@ const generateWeeklySchedule = () => {
 const weeklySchedules = generateWeeklySchedule();
 
 const ACTION_ITEMS = [
-  { priority: 'high',   emoji: '⚠️', title: 'Vanilla Stock Running Low',    description: 'Only 150 L left. 420 L production scheduled — good timing!' },
-  { priority: 'medium', emoji: '📦', title: 'Caramel Batch Expires Soon',   description: 'One batch expires in 5 days. Use first (FIFO rule).' },
-  { priority: 'info',   emoji: '✓',  title: 'Lines 1 & 2 Available',         description: 'No maintenance scheduled. Line 3 — monitor compressor.' },
+  { priority: 'high',   emoji: '⚠️', title: 'Vanilla Stock Running Low',    description: 'Only 150 L left. Production scheduled Mon–Fri AM on Lines 1 & 3.' },
+  { priority: 'medium', emoji: '📦', title: 'Caramel Batch Expires Soon',   description: 'One batch expires in 5 days. Use first today (FIFO rule).' },
+  { priority: 'info',   emoji: '✓',  title: 'Lines 1 & 2 On Schedule',      description: 'No maintenance. Line 3: compressor fault today — monitor.' },
 ];
 
 /* ══════════════════════════════════════════════════════════
    COMPONENT
 ══════════════════════════════════════════════════════════ */
 const WeeklyProductionPlan = () => {
-  const [selectedWeek,   setSelectedWeek]   = useState(0);
-  const [viewMode,       setViewMode]       = useState('cards');   // 'cards'|'gantt'|'kanban'|'intraday'
-  const [showHelp,       setShowHelp]       = useState({});
-  const [selectedDayIdx, setSelectedDayIdx] = useState(3);         // default Thu (today) for wk 1
-
-  // Reset day selection when week changes
-  useEffect(() => {
-    setSelectedDayIdx(selectedWeek === 0 ? 3 : 0);
-  }, [selectedWeek]);
+  const [selectedWeek, setSelectedWeek] = useState(0);
+  const [viewMode,     setViewMode]     = useState('timeline'); // 'cards' | 'kanban' | 'timeline'
+  const [showHelp,     setShowHelp]     = useState({});
 
   const currentWeek = weeklySchedules[selectedWeek];
 
   const toggleHelp = id => setShowHelp(prev => ({ ...prev, [id]: !prev[id] }));
-
   const HelpTooltip = ({ id, children, help }) => (
     <div className="tooltip-wrapper">
       <span className="tooltip-trigger" onClick={() => toggleHelp(id)}>
         {children} <span className="help-icon">?</span>
       </span>
       {showHelp[id] && (
-        <div className="tooltip-content">
-          {help}
-          <button className="close-tooltip" onClick={() => toggleHelp(id)}>✕</button>
-        </div>
+        <div className="tooltip-content">{help}<button className="close-tooltip" onClick={() => toggleHelp(id)}>✕</button></div>
       )}
     </div>
   );
-
-  /* ── Gantt rows ─────────────────────────────────────────── */
-  const ganttRows = useMemo(() => LINES.map(line => {
-    const lineItems = currentWeek.schedule.filter(s => s.line === line);
-    let dayOffset = 0;
-    const bars = lineItems.map(item => {
-      const startCol = dayOffset;
-      const span     = Math.min(item.daysNeeded, 5 - dayOffset);
-      dayOffset += span;
-      return { ...item, startCol, span };
-    });
-    return { line, bars, idleDays: Math.max(0, 5 - dayOffset) };
-  }), [currentWeek]);
 
   /* ── Kanban columns ─────────────────────────────────────── */
   const kanbanCols = useMemo(() => LINES.map(line => ({
@@ -214,109 +187,51 @@ const WeeklyProductionPlan = () => {
     items: currentWeek.schedule.filter(s => s.line === line),
   })), [currentWeek]);
 
-  /* ── Intraday: days of the selected week ────────────────── */
-  const daysOfWeek = useMemo(() => {
-    const base = new Date('2026-04-21');
-    base.setDate(base.getDate() + selectedWeek * 7);
-    return DAY_NAMES.map((name, i) => {
-      const d = new Date(base);
-      d.setDate(d.getDate() + i);
-      return {
-        name,
-        date:    d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-        dateObj: d,
-        isToday: selectedWeek === 0 && i === 3, // Thu Apr 23
-      };
-    });
-  }, [selectedWeek]);
-
-  /* ── Intraday: daily qty per line from weekly schedule ──── */
+  /* ── Daily qty from weekly schedule (÷5) ────────────────── */
   const dailyQty = useMemo(() => {
     const r = {};
-    currentWeek.schedule.forEach(s => {
-      r[`${s.sku}::${s.line}`] = +(s.totalProduction / 5).toFixed(1);
-    });
+    currentWeek.schedule.forEach(s => { r[`${s.sku}::${s.line}`] = +(s.totalProduction / 5).toFixed(1); });
     return r;
   }, [currentWeek]);
 
-  /* ── Intraday: blocks per line ──────────────────────────── */
-  const intradayBlocks = useMemo(() => {
-    const isToday = selectedWeek === 0 && selectedDayIdx === 3;
-    const v1 = dailyQty['Vanilla::Line 1']   || 3.2;
-    const c1 = dailyQty['Caramel::Line 1']   || 2.4;
-    const m2 = dailyQty['Mint::Line 2']      || 2.5;
-    const ch = dailyQty['Chocolate::Line 2'] || 1.8;
-    const v3 = dailyQty['Vanilla::Line 3']   || 4.0;
-    return {
-      'Line 1': getIntradayBlocks('Line 1', false,    v1, c1, m2, ch, v3),
-      'Line 2': getIntradayBlocks('Line 2', false,    v1, c1, m2, ch, v3),
-      'Line 3': getIntradayBlocks('Line 3', isToday,  v1, c1, m2, ch, v3),
-    };
-  }, [selectedWeek, selectedDayIdx, dailyQty]);
+  /* ── Full-week timeline blocks ──────────────────────────── */
+  const tlBlocks = useMemo(() =>
+    buildWeekTimeline(selectedWeek === 0, dailyQty),
+    [selectedWeek, dailyQty]
+  );
 
-  /* ── Intraday: shift summary per line ───────────────────── */
-  const shiftSummary = useMemo(() => {
-    const isToday = selectedWeek === 0 && selectedDayIdx === 3;
-    return LINES.map(line => {
-      const blocks  = intradayBlocks[line];
-      const prodBlocks = blocks.filter(b => b.type === 'production');
-      const totalL  = prodBlocks.reduce((s, b) => s + (b.qty || 0), 0);
-      const downtimeB = blocks.filter(b => b.type === 'downtime');
-      const downtimeH = downtimeB.reduce((s, b) => s + (b.endH - b.startH), 0);
-      const changeoverH = blocks.filter(b => b.type === 'changeover').reduce((s, b) => s + (b.endH - b.startH), 0);
-      const skusProduced = [...new Set(prodBlocks.map(b => b.sku))];
-      const isDown = isToday && line === 'Line 3';
-      return { line, totalL: +totalL.toFixed(1), downtimeH: +downtimeH.toFixed(2), changeoverH: +changeoverH.toFixed(2), skusProduced, isDown, operator: INTRADAY_OPERATORS[line] };
+  /* ── Per-line weekly summary for timeline ───────────────── */
+  const lineSummary = useMemo(() => LINES.map(line => {
+    const blocks = tlBlocks[line];
+    const prodBlocks = blocks.filter(b => b.type === 'production');
+    const totalL     = prodBlocks.reduce((s, b) => s + (b.qty || 0), 0);
+    const skus       = [...new Set(prodBlocks.map(b => b.sku))];
+    const downtimeH  = blocks.filter(b => b.type === 'downtime').reduce((s, b) => s + b.e - b.s, 0);
+    return { line, totalL: +totalL.toFixed(0), skus, downtimeH: +downtimeH.toFixed(2), operator: OPERATORS[line] };
+  }), [tlBlocks]);
+
+  /* ── Week dates for day labels ──────────────────────────── */
+  const weekDates = useMemo(() => {
+    const base = new Date('2026-04-21');
+    base.setDate(base.getDate() + selectedWeek * 7);
+    return DAY_NAMES.map((name, i) => {
+      const d = new Date(base); d.setDate(d.getDate() + i);
+      return { name, date: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) };
     });
-  }, [intradayBlocks, selectedWeek, selectedDayIdx]);
+  }, [selectedWeek]);
 
-  /* ── Intraday: shift event log ──────────────────────────── */
-  const eventLog = useMemo(() => {
-    const isToday = selectedWeek === 0 && selectedDayIdx === 3;
-    const events = [
-      { time: '08:00', line: 'All Lines', label: 'Shift starts — pre-op checks begin', type: 'info' },
-      { time: '08:15', line: 'Line 1',    label: 'Vanilla production starts (A. Kumar)', type: 'production' },
-      { time: '08:25', line: 'Line 3',    label: 'Vanilla production starts (R. Singh)', type: 'production' },
-      { time: '08:30', line: 'Line 2',    label: 'Mint production starts (P. Reddy)', type: 'production' },
-    ];
-    if (isToday) {
-      events.push(
-        { time: '09:15', line: 'Line 3', label: '🔴 Unplanned downtime — compressor fault detected', type: 'downtime' },
-        { time: '09:20', line: 'Line 3', label: 'Maintenance team called — estimated 3 h repair time', type: 'alert' },
-        { time: '10:45', line: 'All',    label: '📸 Current snapshot — Lines 1 & 2 running; Line 3 down', type: 'alert' },
-      );
-    }
-    events.push(
-      { time: '12:30', line: 'All Lines', label: 'Lunch break begins — lines pause', type: 'break' },
-      { time: '13:00', line: 'Line 1',    label: 'Changeover begins: Vanilla → Caramel (45 min)', type: 'changeover' },
-      { time: '13:00', line: 'Line 2',    label: 'Changeover begins: Mint → Chocolate (60 min)', type: 'changeover' },
-    );
-    if (isToday) {
-      events.push({ time: '13:00', line: 'Line 3', label: 'Line 3 resumes — Vanilla production restarts (post-repair)', type: 'production' });
-    } else {
-      events.push({ time: '13:00', line: 'Line 3', label: 'Vanilla production second half begins', type: 'production' });
-    }
-    events.push(
-      { time: '13:45', line: 'Line 1',    label: 'Caramel production starts', type: 'production' },
-      { time: '14:00', line: 'Line 2',    label: 'Chocolate production starts', type: 'production' },
-      { time: '17:00', line: 'All Lines', label: 'Shift ends — CIP sanitation begins (30 min)', type: 'cip' },
-      { time: '17:30', line: 'All Lines', label: 'Lines secured — end-of-day handoff complete', type: 'info' },
-    );
-    return events.sort((a, b) => a.time.localeCompare(b.time));
-  }, [selectedWeek, selectedDayIdx]);
+  const showNow = selectedWeek === 0; // only show NOW needle for week 1
 
-  const isShowNow = selectedWeek === 0 && selectedDayIdx === 3;
-
-  /* ─────────────────────────────────────────────────────────
+  /* ═══════════════════════════════════════════════════════
      RENDER
-  ───────────────────────────────────────────────────────── */
+  ══════════════════════════════════════════════════════ */
   return (
     <div className="weekly-production-container">
 
       {/* ── HEADER ────────────────────────────────────────── */}
       <header className="screen-header">
         <h1>📅 Weekly Production Plan</h1>
-        <p>Cards · Gantt · Kanban · Intraday — pick the view that suits your workflow</p>
+        <p>Every line runs two SKUs per day — Timeline shows the real hour-by-hour picture across the full week</p>
       </header>
 
       {/* ── WEEK SELECTOR ─────────────────────────────────── */}
@@ -334,20 +249,48 @@ const WeeklyProductionPlan = () => {
       {/* ── VIEW TOGGLE ───────────────────────────────────── */}
       <div className="view-toggle-bar">
         {[
-          { key: 'cards',    label: '📋 Cards',    title: 'Production Cards' },
-          { key: 'gantt',    label: '📊 Gantt',    title: 'Gantt Timeline (day view)' },
-          { key: 'kanban',   label: '🗂️ Kanban',  title: 'Kanban Board (by line)' },
-          { key: 'intraday', label: '🕐 Intraday', title: 'Intraday Hour-by-Hour Schedule' },
+          { key: 'timeline', label: '📅 Timeline', title: 'Hour-by-hour timeline, Mon–Fri' },
+          { key: 'cards',    label: '📋 Cards',    title: 'Production cards per SKU' },
+          { key: 'kanban',   label: '🗂️ Kanban',  title: 'Kanban board by line' },
         ].map(v => (
-          <button key={v.key} className={`view-btn ${viewMode === v.key ? 'view-btn-active' : ''}`} onClick={() => setViewMode(v.key)} title={v.title}>
-            {v.label}
-          </button>
+          <button key={v.key} className={`view-btn ${viewMode === v.key ? 'view-btn-active' : ''}`}
+            onClick={() => setViewMode(v.key)} title={v.title}>{v.label}</button>
         ))}
       </div>
 
-      {/* ── ACTION ITEMS ──────────────────────────────────── */}
+      {/* ── CAPACITY ──────────────────────────────────────── */}
+      <div className="capacity-section">
+        <h2>🏭 Weekly Capacity Check</h2>
+        <div className="capacity-card">
+          <div className="capacity-info">
+            <div className="capacity-metric"><label>Weekly Demand</label><div className="big-number">{currentWeek.totalDemand} L</div></div>
+            <div className="capacity-metric"><label>Weekly Capacity</label><div className="big-number">{currentWeek.totalProduction} L</div></div>
+            <div className="capacity-metric">
+              <label>Buffer</label>
+              <div className={`big-number ${currentWeek.isFeasible ? 'ok' : 'warning'}`}>
+                {currentWeek.totalProduction - currentWeek.totalDemand >= 0 ? '+' : ''}{currentWeek.totalProduction - currentWeek.totalDemand} L
+              </div>
+            </div>
+          </div>
+          <div className="progress-bar-section">
+            <div className="progress-label"><span>Capacity Used</span><span className="percentage">{currentWeek.capacityPercentage}%</span></div>
+            <div className="progress-bar">
+              <div className={`progress-fill ${currentWeek.capacityPercentage > 90 ? 'danger' : currentWeek.capacityPercentage > 70 ? 'warning' : 'ok'}`}
+                style={{ width: `${Math.min(currentWeek.capacityPercentage, 100)}%` }} />
+            </div>
+            <div className="progress-legend">
+              <span className="ok">✓ Normal (0–70%)</span><span className="warning">⚠ Tight (70–90%)</span><span className="danger">🚨 Over (90%+)</span>
+            </div>
+          </div>
+          {currentWeek.isFeasible
+            ? <div className="status-ok">✓ YES — we can produce everything this week!</div>
+            : <div className="status-warning">⚠ NO — cannot meet demand. Needs manager escalation.</div>}
+        </div>
+      </div>
+
+      {/* ── ALERTS ────────────────────────────────────────── */}
       <div className="action-items-section">
-        <h2>🎯 Your Tasks This Week</h2>
+        <h2>🎯 This Week's Alerts</h2>
         <div className="action-items-grid">
           {!currentWeek.isFeasible && (
             <div className="action-item priority-critical">
@@ -364,71 +307,233 @@ const WeeklyProductionPlan = () => {
         </div>
       </div>
 
-      {/* ── CAPACITY ──────────────────────────────────────── */}
-      <div className="capacity-section">
-        <h2>🏭 Can We Make It?</h2>
-        <div className="capacity-card">
-          <div className="capacity-info">
-            <div className="capacity-metric"><label>Need to Make</label><div className="big-number">{currentWeek.totalDemand} L</div></div>
-            <div className="capacity-metric"><label>Can Make</label><div className="big-number">{currentWeek.totalProduction} L</div></div>
-            <div className="capacity-metric">
-              <label>Buffer</label>
-              <div className={`big-number ${currentWeek.isFeasible ? 'ok' : 'warning'}`}>
-                {currentWeek.totalProduction - currentWeek.totalDemand >= 0 ? '+' : ''}
-                {currentWeek.totalProduction - currentWeek.totalDemand} L
+      {/* ════════════════════════════════════════════════════
+          TIMELINE VIEW  (Mon–Fri, hour-by-hour)
+      ════════════════════════════════════════════════════ */}
+      {viewMode === 'timeline' && (
+        <div className="tl-section">
+          <h2>📅 Production Timeline — {currentWeek.weekStart} to {currentWeek.weekEnd}</h2>
+          <p className="tl-subtitle">
+            Every line runs two SKUs per shift: AM run → changeover → PM run.
+            {showNow && ' Red needle = current time (10:45 Thu Apr 23).'}
+          </p>
+
+          {/* Legend */}
+          <div className="tl-legend">
+            <div className="tl-legend-group">
+              <span className="tl-legend-label">SKUs</span>
+              {Object.entries(SKU_COLORS).map(([sku, c]) => (
+                <div key={sku} className="tl-legend-item">
+                  <div className="tl-legend-swatch" style={{ background: c.bg, border: `2px solid ${c.border}` }} />
+                  <span>{sku}</span>
+                </div>
+              ))}
+            </div>
+            <div className="tl-legend-group">
+              <span className="tl-legend-label">Events</span>
+              {[['Startup','startup'],['Changeover','changeover'],['Lunch','break'],['CIP','cip'],['Downtime','downtime']].map(([label, key]) => (
+                <div key={key} className="tl-legend-item">
+                  <div className="tl-legend-swatch" style={{ background: BLOCK_STYLE[key].bg, border: `2px solid ${BLOCK_STYLE[key].border}` }} />
+                  <span>{label}</span>
+                </div>
+              ))}
+            </div>
+            {showNow && (
+              <div className="tl-legend-group">
+                <div className="tl-legend-item"><div className="tl-now-swatch" /><span>Now (10:45)</span></div>
+              </div>
+            )}
+          </div>
+
+          {/* Chart */}
+          <div className="tl-chart">
+
+            {/* Day label row */}
+            <div className="tl-row tl-day-header-row">
+              <div className="tl-linecol" />
+              <div className="tl-area">
+                {/* Day separators */}
+                {[1,2,3,4].map(d => <div key={d} className="tl-day-sep" style={{ left: `${tlPct(d*TL_HPD)}%` }} />)}
+                {/* Day labels */}
+                {weekDates.map((day, d) => {
+                  const isTod = selectedWeek === 0 && d === 3;
+                  return (
+                    <div key={d} className={`tl-day-label ${isTod ? 'tl-today-day' : ''}`}
+                      style={{ left: `${tlPct(d*TL_HPD)}%`, width: `${tlPct(TL_HPD)}%` }}>
+                      <span className="tl-day-name">{day.name}</span>
+                      <span className="tl-day-date">{day.date}</span>
+                      {isTod && <span className="tl-today-chip">TODAY</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Hour tick row */}
+            <div className="tl-row tl-hour-row">
+              <div className="tl-linecol" />
+              <div className="tl-area">
+                {Array.from({ length: 5 }, (_, d) =>
+                  [0, 2, 4, 6, 8].map(rh => (
+                    <div key={`${d}-${rh}`} className="tl-hour-tick" style={{ left: `${tlPct(d*TL_HPD + rh)}%` }}>
+                      {hourLabel(8 + rh)}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Line rows */}
+            {LINES.map(line => {
+              const blocks  = tlBlocks[line];
+              const isDown  = showNow && line === 'Line 3';
+
+              return (
+                <div key={line} className={`tl-row tl-line-row ${isDown ? 'tl-row-down' : ''}`}>
+
+                  {/* Line meta */}
+                  <div className="tl-linecol tl-meta">
+                    <div className="tl-meta-name">{line}</div>
+                    <div className="tl-meta-op">{OPERATORS[line]}</div>
+                    <div className={`tl-meta-pill ${isDown ? 'tl-pill-down' : 'tl-pill-ok'}`}>
+                      {isDown ? '🔴 Down' : '🟢 Running'}
+                    </div>
+                    <div className="tl-meta-pattern">
+                      {line === 'Line 1' ? '🍦Vanilla · 🍮Caramel' :
+                       line === 'Line 2' ? '🌿Mint · 🍫Chocolate' :
+                                           '🍦Vanilla (all day)'}
+                    </div>
+                  </div>
+
+                  {/* Timeline area */}
+                  <div className="tl-area tl-timeline">
+                    {/* Day separators */}
+                    {[1,2,3,4].map(d => <div key={d} className="tl-day-sep-line" style={{ left: `${tlPct(d*TL_HPD)}%` }} />)}
+
+                    {/* Hour grid lines (every 2h) */}
+                    {Array.from({ length: 5 }, (_, d) =>
+                      [2, 4, 6, 8].map(rh => (
+                        <div key={`${d}-${rh}`} className="tl-hour-line" style={{ left: `${tlPct(d*TL_HPD + rh)}%` }} />
+                      ))
+                    )}
+
+                    {/* Blocks */}
+                    {blocks.map((blk, i) => {
+                      const lp = tlPct(blk.s);
+                      const wp = tlPct(blk.e) - lp;
+                      const isProd = blk.type === 'production';
+                      const c = isProd ? SKU_COLORS[blk.sku] : BLOCK_STYLE[blk.type];
+
+                      return (
+                        <div key={i}
+                          className={`tl-block tl-blk-${blk.type}`}
+                          style={{ left: `${lp}%`, width: `${wp}%`, background: c.bg, borderLeft: `3px solid ${c.border}` }}
+                          title={blk.label + (blk.qty ? ` (${blk.qty} L)` : '')}>
+                          <div className="tl-blk-inner">
+                            {isProd && wp > 3.5 && (
+                              <>
+                                <div className="tl-blk-sku" style={{ color: c.text }}>{blk.sku}</div>
+                                {wp > 6  && <div className="tl-blk-qty" style={{ color: c.text }}>{blk.qty} L</div>}
+                                {wp > 10 && <div className="tl-blk-time" style={{ color: c.text }}>
+                                  {blk.s % TL_HPD !== 0
+                                    ? `${Math.floor(8 + (blk.s % TL_HPD))}:${String(Math.round(((blk.s % TL_HPD) % 1) * 60)).padStart(2,'0')}–${Math.floor(8 + (blk.e % TL_HPD))}:${String(Math.round(((blk.e % TL_HPD) % 1) * 60)).padStart(2,'0')}`
+                                    : ''}
+                                </div>}
+                              </>
+                            )}
+                            {blk.type === 'changeover' && wp > 1.5 && (
+                              <div className="tl-blk-sku" style={{ color: c.text }}>{wp > 3 ? `⇄ ${blk.from}→${blk.to}` : '⇄'}</div>
+                            )}
+                            {blk.type === 'downtime' && wp > 2 && (
+                              <div className="tl-blk-sku" style={{ color: c.text }}>{wp > 5 ? '🔴 Down' : '🔴'}</div>
+                            )}
+                            {blk.type === 'break'   && wp > 1.5 && <div className="tl-blk-sku" style={{ color: c.text }}>🍽️</div>}
+                            {blk.type === 'startup' && wp > 1   && <div className="tl-blk-sku" style={{ color: c.text }}>▶</div>}
+                            {blk.type === 'cip'     && wp > 1.5 && <div className="tl-blk-sku" style={{ color: c.text }}>CIP</div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* NOW needle */}
+                    {showNow && (
+                      <div className="tl-now-line" style={{ left: `${NOW_PCT}%` }}>
+                        <div className="tl-now-badge">NOW</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Bottom hour row */}
+            <div className="tl-row tl-hour-row tl-hour-bottom">
+              <div className="tl-linecol" />
+              <div className="tl-area">
+                {Array.from({ length: 5 }, (_, d) =>
+                  [0, 2, 4, 6, 8].map(rh => (
+                    <div key={`${d}-${rh}`} className="tl-hour-tick" style={{ left: `${tlPct(d*TL_HPD + rh)}%` }}>
+                      {hourLabel(8 + rh)}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
-          <div className="progress-bar-section">
-            <div className="progress-label"><span>Capacity Used</span><span className="percentage">{currentWeek.capacityPercentage}%</span></div>
-            <div className="progress-bar">
-              <div className={`progress-fill ${currentWeek.capacityPercentage > 90 ? 'danger' : currentWeek.capacityPercentage > 70 ? 'warning' : 'ok'}`}
-                style={{ width: `${Math.min(currentWeek.capacityPercentage, 100)}%` }} />
-            </div>
-            <div className="progress-legend">
-              <span className="ok">✓ Normal (0–70%)</span>
-              <span className="warning">⚠ Tight (70–90%)</span>
-              <span className="danger">🚨 Over (90%+)</span>
-            </div>
+
+          {/* Weekly totals per line */}
+          <div className="tl-summary-row">
+            {lineSummary.map(row => (
+              <div key={row.line} className={`tl-sum-card ${row.downtimeH > 0 ? 'tl-sum-down' : ''}`}>
+                <div className="tl-sum-header">
+                  <span className="tl-sum-line">{row.line}</span>
+                  <span className="tl-sum-op">{row.operator}</span>
+                </div>
+                <div className="tl-sum-metric"><span>Weekly output</span><strong>{row.totalL} L</strong></div>
+                <div className="tl-sum-metric"><span>SKUs / day</span><strong>{row.skus.join(' + ')}</strong></div>
+                {row.downtimeH > 0 && <div className="tl-sum-metric tl-sum-alert"><span>🔴 Downtime today</span><strong>{Math.round(row.downtimeH * 60)} min</strong></div>}
+              </div>
+            ))}
           </div>
-          {currentWeek.isFeasible
-            ? <div className="status-ok">✓ YES — we can produce everything this week!</div>
-            : <div className="status-warning">⚠ NO — cannot meet demand. Needs manager escalation.</div>}
         </div>
-      </div>
+      )}
 
       {/* ════════════════════════════════════════════════════
           CARDS VIEW
       ════════════════════════════════════════════════════ */}
       {viewMode === 'cards' && (
         <div className="what-to-make-section">
-          <h2>📋 Production Schedule — Week {selectedWeek + 1} ({currentWeek.weekStart}–{currentWeek.weekEnd})</h2>
+          <h2>📋 Weekly Production Cards — {currentWeek.weekStart} to {currentWeek.weekEnd}</h2>
+          <p style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>Each SKU runs daily (AM or PM slot). Weekly totals shown. See Timeline view for exact hours.</p>
           <div className="schedule-cards">
             {currentWeek.schedule.map((item, idx) => (
               <div key={idx} className="schedule-card" style={{ borderTopColor: SKU_COLORS[item.sku].border }}>
                 <div className="card-header"><h3>{item.sku}</h3><span className="line-badge">{item.line}</span></div>
                 <div className="card-content">
                   <div className="schedule-item">
-                    <label>When?</label>
-                    <div className="value"><strong>{item.startDay}</strong> to <strong>{item.endDay}</strong><span className="days">({item.daysNeeded} days)</span></div>
+                    <label>Slot</label>
+                    <div className="value">
+                      <strong>{item.line === 'Line 2' && item.sku === 'Chocolate' ? 'PM (14:00–17:00)'
+                        : item.line === 'Line 1' && item.sku === 'Caramel' ? 'PM (13:45–17:00)'
+                        : item.line === 'Line 3' ? 'AM + PM (all day)' : 'AM (08:15–12:30)'}</strong>
+                      <span className="days">Mon–Fri, every day</span>
+                    </div>
                   </div>
                   <div className="schedule-item">
-                    <label>How much?</label>
-                    <div className="value"><strong>{item.totalProduction} L total</strong><span className="daily">({item.dailyProduction} L/day)</span></div>
+                    <label>Weekly total</label>
+                    <div className="value"><strong>{item.totalProduction} L</strong><span className="daily">({item.dailyProduction} L/day)</span></div>
                   </div>
                   <div className="schedule-item">
                     <label>Line load</label>
                     <div className="value">
                       <span>{item.remark}</span>
-                      <div className="card-util-bar-bg">
-                        <div className="card-util-bar" style={{ width: `${Math.min(item.utilPct, 100)}%`, background: SKU_COLORS[item.sku].pill }} />
-                      </div>
+                      <div className="card-util-bar-bg"><div className="card-util-bar" style={{ width: `${Math.min(item.utilPct, 100)}%`, background: SKU_COLORS[item.sku].pill }} /></div>
                     </div>
                   </div>
                   <div className="schedule-item">
-                    <label>Why?</label>
-                    <HelpTooltip id={`demand-${idx}`} help="This is how much customers ordered. We produce to meet demand plus a safety buffer.">
-                      <span>Demand: {item.demand} L</span>
+                    <label>Weekly demand</label>
+                    <HelpTooltip id={`d-${idx}`} help="Total demand for this SKU this week across all channels.">
+                      <span>{item.demand} L</span>
                     </HelpTooltip>
                   </div>
                 </div>
@@ -439,105 +544,37 @@ const WeeklyProductionPlan = () => {
       )}
 
       {/* ════════════════════════════════════════════════════
-          GANTT VIEW
-      ════════════════════════════════════════════════════ */}
-      {viewMode === 'gantt' && (
-        <div className="gantt-section">
-          <h2>📊 Gantt Timeline — Week {selectedWeek + 1} ({currentWeek.weekStart}–{currentWeek.weekEnd})</h2>
-          <div className="gantt-wrapper">
-            <table className="gantt-table">
-              <thead>
-                <tr>
-                  <th className="gantt-line-th">Line</th>
-                  {DAY_NAMES.map(d => <th key={d} className="gantt-day-th">{d}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {ganttRows.map(row => (
-                  <tr key={row.line}>
-                    <td className="gantt-line-label">{row.line}</td>
-                    {row.bars.length === 0 ? (
-                      <td colSpan={5} className="gantt-idle-cell"><div className="gantt-idle-bar">Idle this week</div></td>
-                    ) : (
-                      <>
-                        {row.bars.map((bar, i) => (
-                          <td key={i} colSpan={bar.span} className="gantt-bar-cell">
-                            <div className="gantt-bar" style={{ background: SKU_COLORS[bar.sku].bg, borderLeft: `5px solid ${SKU_COLORS[bar.sku].border}`, color: SKU_COLORS[bar.sku].text }}>
-                              <div className="gantt-bar-sku">{bar.sku}</div>
-                              <div className="gantt-bar-qty">{bar.totalProduction} L</div>
-                              <div className="gantt-bar-meta">{bar.span}d · {bar.dailyProduction} L/d</div>
-                            </div>
-                          </td>
-                        ))}
-                        {row.idleDays > 0 && (
-                          <td colSpan={row.idleDays} className="gantt-idle-cell"><div className="gantt-idle-bar">—</div></td>
-                        )}
-                      </>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="gantt-legend">
-            {Object.entries(SKU_COLORS).map(([sku, c]) => (
-              <div key={sku} className="gantt-legend-item">
-                <div className="gantt-legend-dot" style={{ background: c.pill }} /><span>{sku}</span>
-              </div>
-            ))}
-            <div className="gantt-legend-item"><div className="gantt-legend-dot" style={{ background: '#e0e0e0' }} /><span>Idle</span></div>
-          </div>
-          <div className="gantt-detail-table">
-            <table className="data-table">
-              <thead>
-                <tr><th>Line</th><th>SKU</th><th>Days</th><th className="num">Total (L)</th><th className="num">L/day</th><th>Load</th></tr>
-              </thead>
-              <tbody>
-                {ganttRows.map(row =>
-                  row.bars.map((bar, i) => (
-                    <tr key={`${row.line}-${i}`}>
-                      {i === 0 && <td rowSpan={row.bars.length} className="gantt-line-name-cell">{row.line}</td>}
-                      <td><span className="gantt-sku-dot" style={{ background: SKU_COLORS[bar.sku].pill }} />{bar.sku}</td>
-                      <td>{DAY_NAMES[bar.startCol]} – {DAY_NAMES[bar.startCol + bar.span - 1]} ({bar.span}d)</td>
-                      <td className="num bold">{bar.totalProduction}</td>
-                      <td className="num">{bar.dailyProduction}</td>
-                      <td>
-                        <div className="gantt-load-bar-bg"><div className="gantt-load-bar" style={{ width: `${Math.min(bar.utilPct, 100)}%`, background: SKU_COLORS[bar.sku].pill }} /></div>
-                        <span className="gantt-load-label">{bar.utilPct}%</span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ════════════════════════════════════════════════════
           KANBAN VIEW
       ════════════════════════════════════════════════════ */}
       {viewMode === 'kanban' && (
         <div className="kanban-section">
-          <h2>🗂️ Kanban Board — Week {selectedWeek + 1} ({currentWeek.weekStart}–{currentWeek.weekEnd})</h2>
+          <h2>🗂️ Kanban Board — {currentWeek.weekStart} to {currentWeek.weekEnd}</h2>
+          <p style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>Columns = production lines. Each card = one SKU run per day (AM or PM). Switch to Timeline to see exact hours.</p>
           <div className="kanban-board">
             {kanbanCols.map(col => (
               <div key={col.line} className="kanban-column">
                 <div className="kanban-col-header">
                   <span className="kanban-col-title">{col.line}</span>
-                  <span className="kanban-col-badge">{col.items.length} task{col.items.length !== 1 ? 's' : ''}</span>
+                  <span className="kanban-col-badge">{col.items.length} SKU{col.items.length !== 1 ? 's' : ''}/day</span>
                 </div>
                 {col.items.length === 0 ? (
-                  <div className="kanban-empty">No production assigned this week</div>
+                  <div className="kanban-empty">No production assigned</div>
                 ) : col.items.map((item, i) => (
                   <div key={i} className="kanban-card" style={{ borderTop: `5px solid ${SKU_COLORS[item.sku].border}` }}>
                     <div className="kanban-card-header">
                       <span className="kanban-card-sku" style={{ color: SKU_COLORS[item.sku].text }}>🍦 {item.sku}</span>
-                      <span className="kanban-card-qty">{item.totalProduction} L</span>
+                      <span className="kanban-card-qty">{item.totalProduction} L/wk</span>
                     </div>
-                    <div className="kanban-row"><span className="kanban-key">📅 Days</span><span className="kanban-val">{item.startDay} → {item.endDay} ({item.daysNeeded}d)</span></div>
+                    <div className="kanban-row">
+                      <span className="kanban-key">🕐 Slot</span>
+                      <span className="kanban-val">{
+                        item.line === 'Line 2' && item.sku === 'Chocolate' ? 'PM 14:00–17:00'
+                        : item.line === 'Line 1' && item.sku === 'Caramel' ? 'PM 13:45–17:00'
+                        : item.line === 'Line 3' ? 'AM+PM all day' : 'AM 08:15–12:30'
+                      }</span>
+                    </div>
+                    <div className="kanban-row"><span className="kanban-key">📅 Days</span><span className="kanban-val">Mon–Fri (5 days)</span></div>
                     <div className="kanban-row"><span className="kanban-key">⚡ Rate</span><span className="kanban-val">{item.dailyProduction} L/day</span></div>
-                    <div className="kanban-row"><span className="kanban-key">📦 Demand</span><span className="kanban-val">{item.demand} L</span></div>
                     <div className="kanban-util">
                       <div className="kanban-util-bar-bg"><div className="kanban-util-bar" style={{ width: `${Math.min(item.utilPct, 100)}%`, background: SKU_COLORS[item.sku].pill }} /></div>
                       <span className="kanban-util-label" style={{ color: item.utilPct > 90 ? '#c62828' : item.utilPct > 70 ? '#e65100' : '#2e7d32' }}>{item.utilPct}% line load</span>
@@ -550,209 +587,17 @@ const WeeklyProductionPlan = () => {
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════
-          INTRADAY VIEW
-      ════════════════════════════════════════════════════ */}
-      {viewMode === 'intraday' && (
-        <div className="intraday-section">
-          <h2>🕐 Intraday Schedule — {daysOfWeek[selectedDayIdx].name} {daysOfWeek[selectedDayIdx].date}</h2>
-
-          {/* Day selector */}
-          <div className="id-day-selector">
-            {daysOfWeek.map((day, idx) => (
-              <button key={idx}
-                className={`id-day-btn ${selectedDayIdx === idx ? 'id-day-btn-active' : ''} ${day.isToday ? 'id-day-btn-today' : ''}`}
-                onClick={() => setSelectedDayIdx(idx)}>
-                {day.isToday && <span className="id-today-pill">TODAY</span>}
-                <span className="id-day-name">{day.name}</span>
-                <span className="id-day-date">{day.date}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Legend */}
-          <div className="id-legend">
-            <div className="id-legend-group">
-              <span className="id-legend-label">SKUs</span>
-              {Object.entries(SKU_COLORS).map(([sku, c]) => (
-                <div key={sku} className="id-legend-item">
-                  <div className="id-legend-swatch" style={{ background: c.bg, border: `2px solid ${c.border}` }} />
-                  <span>{sku}</span>
-                </div>
-              ))}
-            </div>
-            <div className="id-legend-group">
-              <span className="id-legend-label">Events</span>
-              {[
-                ['Startup',    BLOCK_STYLE.startup.bg,    BLOCK_STYLE.startup.border],
-                ['Changeover', BLOCK_STYLE.changeover.bg, BLOCK_STYLE.changeover.border],
-                ['Break',      BLOCK_STYLE.break.bg,      BLOCK_STYLE.break.border],
-                ['CIP',        BLOCK_STYLE.cip.bg,        BLOCK_STYLE.cip.border],
-                ['Downtime',   BLOCK_STYLE.downtime.bg,   BLOCK_STYLE.downtime.border],
-              ].map(([label, bg, border]) => (
-                <div key={label} className="id-legend-item">
-                  <div className="id-legend-swatch" style={{ background: bg, border: `2px solid ${border}` }} />
-                  <span>{label}</span>
-                </div>
-              ))}
-            </div>
-            {isShowNow && (
-              <div className="id-legend-group">
-                <div className="id-legend-item">
-                  <div className="id-now-swatch" /><span>Now (10:45)</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Timeline chart */}
-          <div className="id-chart">
-            {/* Top ruler */}
-            <div className="id-ruler-row">
-              <div className="id-linecol" />
-              <div className="id-tl-area id-ruler">
-                {HOUR_MARKS.map(h => (
-                  <div key={h} className="id-hour-label" style={{ left: `${toPct(h)}%` }}>{hourLabel(h)}</div>
-                ))}
-              </div>
-            </div>
-
-            {/* Line rows */}
-            {LINES.map(line => {
-              const blocks  = intradayBlocks[line];
-              const isDown  = isShowNow && line === 'Line 3';
-              return (
-                <div key={line} className={`id-line-row ${isDown ? 'id-row-alert' : ''}`}>
-                  {/* Label column */}
-                  <div className="id-linecol id-line-meta">
-                    <div className="id-lm-name">{line}</div>
-                    <div className="id-lm-op">{INTRADAY_OPERATORS[line]}</div>
-                    <div className={`id-lm-pill ${isDown ? 'id-pill-down' : 'id-pill-ok'}`}>
-                      {isDown ? '🔴 Down' : '🟢 Running'}
-                    </div>
-                  </div>
-
-                  {/* Timeline area */}
-                  <div className="id-tl-area id-tl">
-                    {/* Hour grid lines */}
-                    {HOUR_MARKS.map(h => (
-                      <div key={h} className="id-grid-line" style={{ left: `${toPct(h)}%` }} />
-                    ))}
-
-                    {/* Blocks */}
-                    {blocks.map((block, i) => {
-                      const leftPct = toPct(block.startH);
-                      const widPct  = toPct(block.endH) - leftPct;
-                      const isProduction = block.type === 'production';
-                      const colors = isProduction ? SKU_COLORS[block.sku] : BLOCK_STYLE[block.type];
-
-                      return (
-                        <div key={i}
-                          className={`id-block id-block-${block.type}`}
-                          style={{
-                            left:        `${leftPct}%`,
-                            width:       `${widPct}%`,
-                            background:  colors.bg,
-                            borderLeft:  `4px solid ${colors.border}`,
-                          }}
-                          title={block.label + (block.qty ? ` (${block.qty.toFixed(1)} L)` : '')}>
-                          <div className="id-block-inner">
-                            {isProduction && widPct > 6 && (
-                              <>
-                                <div className="id-blk-name" style={{ color: colors.text }}>{block.sku}</div>
-                                {widPct > 11 && <div className="id-blk-qty" style={{ color: colors.text }}>{block.qty.toFixed(1)} L</div>}
-                                {widPct > 18 && <div className="id-blk-time" style={{ color: colors.text }}>{fmtH(block.startH)} – {fmtH(block.endH)}</div>}
-                              </>
-                            )}
-                            {block.type === 'changeover' && widPct > 4 && (
-                              <div className="id-blk-name" style={{ color: colors.text }}>
-                                {widPct > 9 ? `⇄ ${block.from}→${block.to}` : '⇄'}
-                              </div>
-                            )}
-                            {block.type === 'downtime' && widPct > 4 && (
-                              <div className="id-blk-name" style={{ color: colors.text }}>
-                                {widPct > 12 ? '🔴 Downtime' : '🔴'}
-                              </div>
-                            )}
-                            {block.type === 'break' && widPct > 3 && (
-                              <div className="id-blk-name" style={{ color: colors.text }}>🍽️</div>
-                            )}
-                            {block.type === 'startup' && widPct > 3 && (
-                              <div className="id-blk-name" style={{ color: colors.text }}>▶</div>
-                            )}
-                            {block.type === 'cip' && widPct > 3 && (
-                              <div className="id-blk-name" style={{ color: colors.text }}>CIP</div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {/* Now indicator */}
-                    {isShowNow && (
-                      <div className="id-now-line" style={{ left: `${toPct(SIMULATED_NOW_H)}%` }}>
-                        <div className="id-now-badge">NOW</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Bottom ruler */}
-            <div className="id-ruler-row id-ruler-bottom">
-              <div className="id-linecol" />
-              <div className="id-tl-area id-ruler">
-                {HOUR_MARKS.map(h => (
-                  <div key={h} className="id-hour-label" style={{ left: `${toPct(h)}%` }}>{hourLabel(h)}</div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Shift summary cards */}
-          <div className="id-summary-grid">
-            {shiftSummary.map(row => (
-              <div key={row.line} className={`id-summary-card ${row.isDown ? 'id-summary-down' : ''}`}>
-                <div className="id-sc-header">
-                  <span className="id-sc-line">{row.line}</span>
-                  <span className="id-sc-op">{row.operator}</span>
-                </div>
-                <div className="id-sc-metric"><span className="id-sc-label">Total produced</span><span className="id-sc-val">{row.totalL} L</span></div>
-                <div className="id-sc-metric"><span className="id-sc-label">SKUs run</span><span className="id-sc-val">{row.skusProduced.join(', ') || '—'}</span></div>
-                {row.changeoverH > 0 && <div className="id-sc-metric"><span className="id-sc-label">Changeover</span><span className="id-sc-val">{Math.round(row.changeoverH * 60)} min</span></div>}
-                {row.downtimeH > 0 && <div className="id-sc-metric id-sc-alert"><span className="id-sc-label">🔴 Downtime</span><span className="id-sc-val">{Math.round(row.downtimeH * 60)} min</span></div>}
-              </div>
-            ))}
-          </div>
-
-          {/* Shift event log */}
-          <div className="id-event-log">
-            <h3>📋 Shift Event Log</h3>
-            <div className="id-events">
-              {eventLog.map((ev, i) => (
-                <div key={i} className={`id-event id-ev-${ev.type}`}>
-                  <span className="id-ev-time">{ev.time}</span>
-                  <span className="id-ev-line">{ev.line}</span>
-                  <span className="id-ev-desc">{ev.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── HELP ──────────────────────────────────────────── */}
       <div className="help-section">
-        <h2>❓ Common Questions</h2>
+        <h2>❓ How to Read This</h2>
         <div className="help-grid">
           {[
-            ['What is Gantt view?',    'Shows a Mon–Fri timeline per production line — see which days each SKU is being produced.'],
-            ['What is Kanban view?',   'Groups tasks by production line (3 columns). Each card is one SKU run for the week.'],
-            ['What is Intraday view?', 'Hour-by-hour timeline from 08:00–18:00. Shows startup, production runs, changeovers, lunch, CIP and any downtime.'],
-            ['What is a Changeover?',  'Time taken to clean and reconfigure a line to switch from one SKU to another (45–60 min).'],
-            ['What is CIP?',           'Clean-In-Place sanitation at end of shift — mandatory food-safety step, typically 30 min.'],
-            ['What is FIFO?',          'First In First Out — always use the oldest stock first so nothing expires.'],
+            ['Why do lines run 2 SKUs/day?', 'Each 9-hour shift is split: ~4h AM run + 45–60 min changeover + ~3h PM run. This doubles throughput vs running one SKU all week.'],
+            ['What is Changeover?', 'Time to clean and reconfigure the line between SKUs. Line 1: 45 min (Vanilla→Caramel). Line 2: 60 min (Mint→Chocolate, longer due to colour change).'],
+            ['What is CIP?', 'Clean-In-Place sanitation at end of every shift — mandatory food-safety step. 30 min, happens daily at 17:00.'],
+            ['Why is Line 3 down today?', 'An unplanned compressor fault at 09:15 halted Line 3. It ran 2.5 L of Vanilla before the fault. Expected resume 13:00 after repair.'],
+            ['What is FIFO?', 'First In First Out — oldest stock is used first. Caramel batch expiring in 5 days should be dispatched before newer batches.'],
+            ['Timeline vs Cards view?', 'Timeline = exact hours (most accurate). Cards = quick weekly summary. Kanban = view by production line.'],
           ].map(([q, a]) => (
             <div key={q} className="help-card"><h3>{q}</h3><p>{a}</p></div>
           ))}
