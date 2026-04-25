@@ -122,6 +122,58 @@
 .util-status-warning  { color:#e65100; font-weight:700; }
 .util-status-critical { color:#EE1C25; font-weight:800; }
 
+/* ── SKU-wise Production Plan Grid ────────────────────────── */
+.sku-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.sku-plan-card {
+  background: white;
+  border-radius: 12px;
+  border: 1.5px solid #f0e0e0;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(238,28,37,0.08);
+}
+.sku-plan-header {
+  background: linear-gradient(135deg, #EE1C25, #FF4444);
+  color: white;
+  padding: 12px 16px;
+  font-weight: 800;
+  font-size: 15px;
+  border-bottom: 2px solid #EE1C25;
+}
+.sku-plan-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.sku-plan-table thead th {
+  padding: 8px 10px;
+  background: #FFF8F3;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8B4513;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #f0e0e0;
+}
+.sku-plan-table thead th.month-col { width: 50%; }
+.sku-plan-table thead th.number { text-align: right; }
+.sku-plan-table tbody tr {
+  border-bottom: 1px solid #f8f0f0;
+  transition: background 0.15s;
+}
+.sku-plan-table tbody tr:hover { background: #fffaf8; }
+.sku-plan-table tbody td {
+  padding: 6px 10px;
+  color: #333;
+}
+.sku-plan-table tbody td.month-col { font-size: 11px; }
+.sku-plan-table tbody td.number { text-align: right; font-family: monospace; }
+
 /* Decision cell */
 .decision-cell { font-size:12px; white-space:nowrap; }
 

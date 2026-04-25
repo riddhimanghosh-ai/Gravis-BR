@@ -81,6 +81,22 @@ const ManufacturingExecutionPlanning = () => {
     });
   }, [filters, skus, monthRange]);
 
+  // ── 12-Month SKU-wise production plan ──────────────────────
+  const skuMonthlyPlan = useMemo(() => {
+    return skus.map(sku => {
+      const rows = MONTH_LABELS.map((label, idx) => {
+        let demand = 0;
+        filters.channels.forEach(ch => {
+          demand += Math.round(MONTHLY_DEMAND[idx] * CHANNEL_WEIGHTS[ch][idx] * SKU_WEIGHTS[sku]);
+        });
+        const currentInv = Math.round(demand * 0.40);
+        const toProduced = Math.max(0, demand - currentInv);
+        return { month: label, demand, produced: toProduced };
+      });
+      return { sku, rows };
+    });
+  }, [filters, skus]);
+
   const prodAlerts    = DECISION_ALERTS.filter(a => a.screen === 'production');
   const overCapCount  = monthlyRows.filter(r => r.utilPct > 100).length;
   const criticalCount = monthlyRows.filter(r => r.utilPct > 200).length;
@@ -234,6 +250,41 @@ const ManufacturingExecutionPlanning = () => {
               })}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* ── SKU-WISE MONTHLY PRODUCTION PLAN ──────────────── */}
+      <div className="table-section">
+        <div className="section-header">
+          <h2>📅 SKU-wise Monthly Production Plan</h2>
+          <p>Shows what each SKU needs to produce monthly based on filtered channels and forecast.</p>
+        </div>
+        <div className="sku-plan-grid">
+          {skuMonthlyPlan.map(plan => (
+            <div key={plan.sku} className="sku-plan-card">
+              <div className="sku-plan-header">{plan.sku}</div>
+              <div className="table-wrapper">
+                <table className="sku-plan-table">
+                  <thead>
+                    <tr>
+                      <th className="month-col">Month</th>
+                      <th className="number">Demand (L)</th>
+                      <th className="number">Produce (L)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {plan.rows.map((row, idx) => (
+                      <tr key={idx}>
+                        <td className="month-col">{row.month}</td>
+                        <td className="number">{row.demand.toLocaleString()}</td>
+                        <td className="number"><strong>{row.produced.toLocaleString()}</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
