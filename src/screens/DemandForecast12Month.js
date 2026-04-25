@@ -151,32 +151,6 @@ const DemandForecast12Month = () => {
         </div>
       </div>
 
-      {/* ── SUMMARY METRICS ──────────────────────────────── */}
-      {monthlyRows.length > 0 && (
-        <div className="metrics-grid">
-          <div className="metric-card">
-            <div className="metric-label">Total Demand</div>
-            <div className="metric-value">{metrics.annual?.toLocaleString()} L</div>
-            <div className="metric-subtext">{monthlyRows.length} months</div>
-          </div>
-          <div className={`metric-card ${metrics.overCapacityMonths > 0 ? 'negative' : 'positive'}`}>
-            <div className="metric-label">Over-Capacity Months</div>
-            <div className="metric-value">{metrics.overCapacityMonths}</div>
-            <div className="metric-subtext">{metrics.overCapacityMonths > 0 ? 'Pre-build required' : 'Within capacity'}</div>
-          </div>
-          <div className="metric-card">
-            <div className="metric-label">Peak Month</div>
-            <div className="metric-value">{metrics.peak?.label}</div>
-            <div className="metric-subtext">{metrics.peak?.demand?.toLocaleString()} L</div>
-          </div>
-          <div className="metric-card">
-            <div className="metric-label">SKU Selected</div>
-            <div className="metric-value">{selectedSku}</div>
-            <div className="metric-subtext">Channels: {selectedChannels.length}</div>
-          </div>
-        </div>
-      )}
-
       {/* ── TABLE ────────────────────────────────────────── */}
       <div className="table-section">
         <div className="section-header">
