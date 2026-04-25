@@ -89,9 +89,9 @@ const ManufacturingExecutionPlanning = () => {
         filters.channels.forEach(ch => {
           demand += Math.round(MONTHLY_DEMAND[idx] * CHANNEL_WEIGHTS[ch][idx] * SKU_WEIGHTS[sku]);
         });
-        const currentInv = Math.round(demand * 0.40);
-        const toProduced = Math.max(0, demand - currentInv);
-        return { month: label, demand, produced: toProduced };
+        const inStock = Math.round(demand * 0.40);
+        const needToProduce = Math.max(0, demand - inStock);
+        return { month: label, demand, inStock, needToProduce };
       });
       return { sku, rows };
     });
@@ -269,7 +269,8 @@ const ManufacturingExecutionPlanning = () => {
                     <tr>
                       <th className="month-col">Month</th>
                       <th className="number">Demand (L)</th>
-                      <th className="number">Produce (L)</th>
+                      <th className="number">In Stock (L)</th>
+                      <th className="number">Need to Produce (L)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -277,7 +278,8 @@ const ManufacturingExecutionPlanning = () => {
                       <tr key={idx}>
                         <td className="month-col">{row.month}</td>
                         <td className="number">{row.demand.toLocaleString()}</td>
-                        <td className="number"><strong>{row.produced.toLocaleString()}</strong></td>
+                        <td className="number">{row.inStock.toLocaleString()}</td>
+                        <td className="number"><strong>{row.needToProduce.toLocaleString()}</strong></td>
                       </tr>
                     ))}
                   </tbody>

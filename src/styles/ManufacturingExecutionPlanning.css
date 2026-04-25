@@ -160,8 +160,8 @@
   letter-spacing: 0.5px;
   border-bottom: 2px solid #f0e0e0;
 }
-.sku-plan-table thead th.month-col { width: 50%; }
-.sku-plan-table thead th.number { text-align: right; }
+.sku-plan-table thead th.month-col { width: 35%; }
+.sku-plan-table thead th.number { text-align: right; width: 21.67%; }
 .sku-plan-table tbody tr {
   border-bottom: 1px solid #f8f0f0;
   transition: background 0.15s;
@@ -171,8 +171,8 @@
   padding: 6px 10px;
   color: #333;
 }
-.sku-plan-table tbody td.month-col { font-size: 11px; }
-.sku-plan-table tbody td.number { text-align: right; font-family: monospace; }
+.sku-plan-table tbody td.month-col { font-size: 11px; width: 35%; }
+.sku-plan-table tbody td.number { text-align: right; font-family: monospace; width: 21.67%; }
 
 /* Decision cell */
 .decision-cell { font-size:12px; white-space:nowrap; }
