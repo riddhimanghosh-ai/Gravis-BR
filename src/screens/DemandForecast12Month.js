@@ -55,7 +55,7 @@ const DemandForecast12Month = () => {
         channelBreakdown[ch] = chDemand;
       });
 
-      // Planner action (utilPct-based)
+      // Planner action (utilPct-based) — match MEP logic
       const utilPct = Math.round((filteredDemand / capacity) * 100);
       let plannerAction;
       if (utilPct > 130) {
