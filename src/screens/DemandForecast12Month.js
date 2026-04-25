@@ -215,7 +215,12 @@ const DemandForecast12Month = () => {
             <tbody>
               {monthlyRows.map((row, idx) => (
                 <tr key={idx} className={row.isForecast ? 'row-forecast' : 'row-actual'}>
-                  <td className="highlight">{row.label}</td>
+                  <td className="highlight">
+                    {row.label}
+                    <span className={`month-type-badge ${row.isForecast ? 'badge-forecast' : 'badge-actual'}`}>
+                      {row.isForecast ? 'Forecast' : 'Actual'}
+                    </span>
+                  </td>
                   <td className="number bold">{row.demand.toLocaleString()}</td>
                   {selectedChannels.map(ch => (
                     <td key={ch} className="number">{(row[ch] || 0).toLocaleString()}</td>

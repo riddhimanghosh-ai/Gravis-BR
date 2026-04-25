@@ -211,6 +211,21 @@
 .badge-actual   { background: #fde8e8; color: #EE1C25; }
 .badge-forecast { background: #fff3e0; color: #E65100; }
 
+/* Month type badge (Actual vs Forecast) */
+.month-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-left: 8px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.month-type-badge.badge-actual   { background: #fde8e8; color: #EE1C25; }
+.month-type-badge.badge-forecast { background: #fff3e0; color: #E65100; }
+
 /* ── Growth column ───────────────────────────────────────────── */
 .growth-positive { color: #7AC943; font-weight: 700; }
 .growth-negative { color: #EE1C25; font-weight: 700; }
