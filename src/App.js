@@ -14,6 +14,7 @@ import LineSimulator from './screens/LineSimulator';
 import LinesConfiguration from './screens/LinesConfiguration';
 import ColdChainExpiryManagement from './screens/ColdChainExpiryManagement';
 import RawMaterials from './screens/RawMaterials';
+import ScoopBot from './components/ScoopBot';
 
 const PLAN_ITEMS = [
   { id: 'forecast',  label: '📈 Demand Forecast',         path: '/forecast-12month' },
@@ -115,6 +116,9 @@ function App() {
             </Routes>
           </main>
         </div>
+
+        {/* ── ScoopBot — global AI assistant ─────────────── */}
+        <ScoopBot />
       </div>
     </Router>
   );
