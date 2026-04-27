@@ -21,19 +21,23 @@ const DemandForecast12Month = () => {
   const capacity    = PRODUCTION_STANDARDS.monthlyCapacity;
 
   // ── Filter state ────────────────────────────────────────
-  // forecastMonths: how many future months to show (1–6); actuals always shown
+  // forecastMonths: how many future months to show (1–6)
   const [forecastMonths, setForecastMonths] = useState(6);
   const [selectedSku, setSelectedSku] = useState('Vanilla');
   const [selectedChannels, setSelectedChannels] = useState(allChannels);
   const [showCharts, setShowCharts] = useState(false);
+  const [showPreviousMonths, setShowPreviousMonths] = useState(false);
 
-  // visible range: all actuals + chosen forecast months
+  // visible range:
+  // - If showPreviousMonths: show all actuals (0–5) + chosen forecast months (6–11+)
+  // - Otherwise: only show forecast months (start at index 6)
+  const visibleStart = showPreviousMonths ? 0 : ACTUAL_COUNT;
   const visibleEnd = ACTUAL_COUNT - 1 + forecastMonths; // 0-based last index
 
   // ── Build monthly data ──────────────────────────────────
   const monthlyRows = useMemo(() => {
     return MONTH_LABELS.map((label, idx) => {
-      if (idx > visibleEnd) return null;
+      if (idx < visibleStart || idx > visibleEnd) return null;
 
       const isForecast = MONTH_TYPE[idx] === 'Forecast';
       const baseDemand = MONTHLY_DEMAND[idx];
@@ -93,7 +97,7 @@ const DemandForecast12Month = () => {
         plannerAction, utilPct, capacity,
       };
     }).filter(r => r !== null);
-  }, [visibleEnd, selectedSku, selectedChannels]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visibleStart, visibleEnd, selectedSku, selectedChannels]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Summary metrics ────────────────────────────────────
   const metrics = useMemo(() => {
@@ -163,6 +167,32 @@ const DemandForecast12Month = () => {
             allLabel="All Channels"
           />
         </div>
+      </div>
+
+      {/* ── SHOW PREVIOUS MONTHS TOGGLE ────────────────── */}
+      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          onClick={() => setShowPreviousMonths(!showPreviousMonths)}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: '1.5px solid #ddd',
+            background: showPreviousMonths ? '#EE1C25' : 'white',
+            color: showPreviousMonths ? 'white' : '#333',
+            fontSize: '13px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            if (!showPreviousMonths) e.target.style.borderColor = '#EE1C25';
+          }}
+          onMouseLeave={(e) => {
+            if (!showPreviousMonths) e.target.style.borderColor = '#ddd';
+          }}
+        >
+          {showPreviousMonths ? '▼ Hide' : '▶ Show'} Previous 6 Months (Oct–Mar)
+        </button>
       </div>
 
       {/* ── TABLE ────────────────────────────────────────── */}
