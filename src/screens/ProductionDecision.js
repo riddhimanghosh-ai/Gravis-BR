@@ -16,10 +16,10 @@ import '../styles/ProductionDecision.css';
  *          just the deficit (A), full capacity (B), or deficit + buffer (C)?"
  */
 const ProductionDecision = () => {
-  // Planner is making decisions for the current / upcoming month.
-  // Default to Mar 2026 (idx 5) — cleanest trade-off for the demo.
-  // Switch to Apr/May/Jun to see how the framework handles peak-season capacity squeeze.
-  const [monthIdx, setMonthIdx] = useState(5);
+  // Planner is making decisions for forecast months only (Apr 2026 onwards).
+  // Default to Apr 2026 (idx 6) — first forecast month.
+  // Switch to May/Jun/Jul/Aug to see how the framework handles peak-season capacity squeeze.
+  const [monthIdx, setMonthIdx] = useState(6);
 
   // ── Constants / assumptions ─────────────────────────────────
   const OPENING_RATIO = INVENTORY_RULES.openingInventoryRatio ?? 0.40;
@@ -225,9 +225,11 @@ const ProductionDecision = () => {
               onChange={e => setMonthIdx(Number(e.target.value))}
             >
               {MONTH_LABELS.map((label, i) => (
-                <option key={i} value={i}>
-                  {label} ({MONTH_TYPE[i]})
-                </option>
+                MONTH_TYPE[i] === 'Forecast' && (
+                  <option key={i} value={i}>
+                    {label}
+                  </option>
+                )
               ))}
             </select>
             <span className={`month-type-pill month-type-${monthType.toLowerCase()}`}>{monthType}</span>

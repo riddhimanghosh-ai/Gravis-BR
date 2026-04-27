@@ -77,9 +77,15 @@ const DemandForecast12Month = () => {
         plannerAction = { label: `✅ Normal (${utilPct}%) — ${suffix}`, cls: 'action-ok' };
       }
 
+      // In Stock (40% opening ratio) and Need to Produce
+      const inStock = Math.round(filteredDemand * 0.40);
+      const needToProduce = Math.max(0, filteredDemand - inStock);
+
       return {
         label, shortLabel: MONTH_SHORT[idx], type: MONTH_TYPE[idx],
         demand: filteredDemand,
+        inStock,
+        needToProduce,
         isForecast,
         forecastLower: isForecast ? Math.round(filteredDemand * ci.lower) : null,
         forecastUpper: isForecast ? Math.round(filteredDemand * ci.upper) : null,
@@ -172,6 +178,8 @@ const DemandForecast12Month = () => {
               <tr>
                 <th>Month</th>
                 <th className="number">Total Demand (L)</th>
+                <th className="number">In Stock (L)</th>
+                <th className="number">Need to Produce (L)</th>
                 {selectedChannels.map(ch => <th key={ch} className="number">{ch} (L)</th>)}
                 <th>Planner Action</th>
               </tr>
@@ -186,6 +194,8 @@ const DemandForecast12Month = () => {
                     </span>
                   </td>
                   <td className="number bold">{row.demand.toLocaleString()}</td>
+                  <td className="number">{row.inStock.toLocaleString()}</td>
+                  <td className="number bold">{row.needToProduce.toLocaleString()}</td>
                   {selectedChannels.map(ch => (
                     <td key={ch} className="number">{(row[ch] || 0).toLocaleString()}</td>
                   ))}

@@ -14,7 +14,8 @@ const ManufacturingExecutionPlanning = () => {
 
   const [filters, setFilters] = useState({ channels, skus });
   const [showChart, setShowChart] = useState(false);
-  const [monthRange, setMonthRange] = useState({ start: 0, end: 11 });
+  // Show only forecast months (Apr 2026 – Sep 2026, indices 6-11)
+  const [monthRange, setMonthRange] = useState({ start: 6, end: 11 });
 
   const MONTHLY_CAPACITY = PRODUCTION_STANDARDS.monthlyCapacity; // 1500 L/month
 
@@ -126,13 +127,17 @@ const ManufacturingExecutionPlanning = () => {
       {/* ── MONTH RANGE FILTER ───────────────────────────────── */}
       <div className="filter-panel">
         <div className="filter-group">
-          <label className="filter-label">📅 Month Range</label>
+          <label className="filter-label">📅 Forecast Period</label>
           <select value={monthRange.start} onChange={e => setMonthRange(r => ({ ...r, start: parseInt(e.target.value) }))}>
-            {MONTH_LABELS.map((lbl, i) => <option key={i} value={i}>{lbl} (start)</option>)}
+            {MONTH_LABELS.map((lbl, i) => (
+              MONTH_TYPE[i] === 'Forecast' && <option key={i} value={i}>{lbl}</option>
+            ))}
           </select>
           <span className="filter-sep">to</span>
           <select value={monthRange.end} onChange={e => setMonthRange(r => ({ ...r, end: parseInt(e.target.value) }))}>
-            {MONTH_LABELS.map((lbl, i) => <option key={i} value={i}>{lbl} (end)</option>)}
+            {MONTH_LABELS.map((lbl, i) => (
+              MONTH_TYPE[i] === 'Forecast' && <option key={i} value={i}>{lbl}</option>
+            ))}
           </select>
         </div>
       </div>
