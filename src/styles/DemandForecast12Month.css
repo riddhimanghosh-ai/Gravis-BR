@@ -370,6 +370,8 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  flex: 1;
+  min-width: 200px;
 }
 
 .filter-group-dropdowns {
@@ -385,6 +387,7 @@
   border-radius: 10px;
   border: 1.5px solid #ddd;
   transition: border-color 0.15s;
+  min-height: 38px;
 }
 .filter-control:hover {
   border-color: #EE1C25;
