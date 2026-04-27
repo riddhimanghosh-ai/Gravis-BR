@@ -12,22 +12,28 @@ import {
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
 import '../styles/DemandForecast12Month.css';
 
+// How many actual months are in the dataset (Oct 2025 – Mar 2026)
+const ACTUAL_COUNT = MONTH_TYPE.filter(t => t === 'Actual').length; // 6
+
 const DemandForecast12Month = () => {
   const allChannels = ['Parlor', 'Retail', 'HoReCa', 'E-Commerce'];
   const allSkus     = ['Vanilla', 'Caramel', 'Mint', 'Chocolate'];
   const capacity    = PRODUCTION_STANDARDS.monthlyCapacity;
 
   // ── Filter state ────────────────────────────────────────
-  const [monthRange, setMonthRange] = useState({ start: 0, end: 11 });
+  // forecastMonths: how many future months to show (1–6); actuals always shown
+  const [forecastMonths, setForecastMonths] = useState(6);
   const [selectedSku, setSelectedSku] = useState('Vanilla');
   const [selectedChannels, setSelectedChannels] = useState(allChannels);
   const [showCharts, setShowCharts] = useState(false);
-  const [showMatrix, setShowMatrix] = useState(false);
+
+  // visible range: all actuals + chosen forecast months
+  const visibleEnd = ACTUAL_COUNT - 1 + forecastMonths; // 0-based last index
 
   // ── Build monthly data ──────────────────────────────────
   const monthlyRows = useMemo(() => {
     return MONTH_LABELS.map((label, idx) => {
-      if (idx < monthRange.start || idx > monthRange.end) return null;
+      if (idx > visibleEnd) return null;
 
       const isForecast = MONTH_TYPE[idx] === 'Forecast';
       const baseDemand = MONTHLY_DEMAND[idx];
@@ -81,7 +87,7 @@ const DemandForecast12Month = () => {
         plannerAction, utilPct, capacity,
       };
     }).filter(r => r !== null);
-  }, [monthRange, selectedSku, selectedChannels]);
+  }, [visibleEnd, selectedSku, selectedChannels]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Summary metrics ────────────────────────────────────
   const metrics = useMemo(() => {
@@ -105,7 +111,7 @@ const DemandForecast12Month = () => {
       {/* ── HEADER ────────────────────────────────────────── */}
       <header className="screen-header">
         <h1>📊 12-Month Demand Forecast</h1>
-        <p>Oct 2025 → Sep 2026 &nbsp;|&nbsp; 6 months actual + 6 months forecast &nbsp;|&nbsp; Filter by month, SKU, and channel</p>
+        <p>Oct 2025 → Sep 2026 &nbsp;|&nbsp; 6 months actual + up to 6 months forecast &nbsp;|&nbsp; Filter by forecast horizon, SKU, and channel</p>
       </header>
 
       {/* ── ALERTS ────────────────────────────────────────── */}
@@ -123,16 +129,16 @@ const DemandForecast12Month = () => {
 
       {/* ── FILTERS ───────────────────────────────────────── */}
       <div className="filter-panel">
-        {/* Month range */}
+        {/* Forecast horizon */}
         <div className="filter-group">
-          <label className="filter-label">📅 Month Range</label>
-          <select value={monthRange.start} onChange={e => setMonthRange(r => ({ ...r, start: parseInt(e.target.value) }))}>
-            {MONTH_LABELS.map((lbl, i) => <option key={i} value={i}>{lbl} (start)</option>)}
-          </select>
-          <span className="filter-sep">to</span>
-          <select value={monthRange.end} onChange={e => setMonthRange(r => ({ ...r, end: parseInt(e.target.value) }))}>
-            {MONTH_LABELS.map((lbl, i) => <option key={i} value={i}>{lbl} (end)</option>)}
-          </select>
+          <div className="filter-control">
+            <label className="filter-label">📅 Forecast Horizon</label>
+            <select value={forecastMonths} onChange={e => setForecastMonths(parseInt(e.target.value))} className="filter-select">
+              {[1,2,3,4,5,6].map(n => (
+                <option key={n} value={n}>{n} month{n > 1 ? 's' : ''} forecast</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* SKU + Channel dropdowns */}
@@ -157,7 +163,7 @@ const DemandForecast12Month = () => {
       <div className="table-section">
         <div className="section-header">
           <h2>📋 Demand Plan by Channels</h2>
-          <p>SKU: <strong>{selectedSku}</strong> &nbsp;|&nbsp; Channels: {selectedChannels.join(', ')}</p>
+          <p>SKU: <strong>{selectedSku}</strong> &nbsp;|&nbsp; Channels: {selectedChannels.join(', ')} &nbsp;|&nbsp; Showing 6 actuals + <strong>{forecastMonths}</strong> forecast month{forecastMonths > 1 ? 's' : ''}</p>
         </div>
 
         <div className="table-wrapper">

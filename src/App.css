@@ -313,6 +313,94 @@ body {
   }
 }
 
+/* ============================================
+   ACCORDION NAV
+   ============================================ */
+
+.accordion-section {
+  margin-bottom: 2px;
+}
+
+.accordion-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 20px;
+  background: none;
+  border: none;
+  border-left: 4px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--dark-text);
+  text-align: left;
+  transition: all 0.2s ease;
+  letter-spacing: 0.1px;
+}
+
+.accordion-header:hover {
+  background: linear-gradient(90deg, rgba(238,28,37,0.06), transparent);
+  border-left-color: var(--primary-pink);
+  color: var(--primary-pink);
+}
+
+.accordion-header-active {
+  color: var(--primary-pink);
+  border-left-color: var(--primary-pink);
+  background: linear-gradient(90deg, rgba(238,28,37,0.07), transparent);
+}
+
+.accordion-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.accordion-label {
+  flex: 1;
+}
+
+.accordion-chevron {
+  font-size: 18px;
+  font-weight: 400;
+  color: #aaa;
+  transition: transform 0.2s ease;
+  display: inline-block;
+  transform: rotate(0deg);
+  line-height: 1;
+}
+
+.accordion-chevron.open {
+  transform: rotate(90deg);
+}
+
+.accordion-body {
+  background: #fafafa;
+  border-top: 1px solid #f0e0e0;
+  border-bottom: 1px solid #f0e0e0;
+}
+
+.accordion-body .menu-item.level-1 {
+  padding: 10px 20px 10px 40px;
+  font-size: 13px;
+  font-weight: 500;
+  border-left: 4px solid transparent;
+  color: #444;
+}
+
+.accordion-body .menu-item.level-1:hover {
+  background: linear-gradient(90deg, rgba(238,28,37,0.05), transparent);
+  border-left-color: var(--primary-pink);
+  color: var(--primary-pink);
+}
+
+.accordion-body .menu-item-active.level-1 {
+  background: rgba(238,28,37,0.08) !important;
+  border-left: 4px solid var(--primary-pink) !important;
+  color: var(--primary-pink) !important;
+  font-weight: 700;
+}
+
 /* ── Active nav item ── */
 .menu-item-active {
   background: rgba(238, 28, 37, 0.10) !important;
